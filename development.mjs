@@ -142,6 +142,8 @@ export class DevelopmentEngine {
  recipe(id) {const r=this.core.settings.projectRecipes.find(r=>r.id===id);if(!r)throw Error('Recipe not approved');return structuredClone(r)}
  command(recipe) {
   if(recipe.tool==='npm') {
+   const bundled=path.join(this.home,'runtime/node/node_modules/npm/bin/npm-cli.js');
+   if(fs.existsSync(bundled))return {file:executable('node',this.home),args:[bundled,...recipe.args]};
    // Invoke npm's JS entry directly; never cmd.exe or shell command interpolation.
    for(const folder of (process.env.PATH||'').split(path.delimiter)){
     for(const relative of ['node_modules/npm/bin/npm-cli.js','../lib/node_modules/npm/bin/npm-cli.js']){const cli=path.resolve(folder,relative);if(fs.existsSync(cli))return {file:executable('node',this.home),args:[cli,...recipe.args]};}

@@ -97,12 +97,13 @@ $installAction={
    $dependencies=@(
     @{name='mingit-2.56.0.4.zip';url='https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip';sha='e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877';bytes=39846926;folder='git'},
     @{name='gh-2.103.3.zip';url='https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_windows_amd64.zip';sha='98d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0';bytes=15197187;folder='gh'}
+    @{name='node-v24.22.1-win-x64.zip';url='https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip';sha='d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5';bytes=37748064;folder='node';stripRoot=$true}
    )
    foreach($dep in $dependencies){
     $archive=Join-Path $cache $dep.name;Download $dep.url $archive $dep.sha $dep.bytes
     $targetRoot=Join-Path $install ('runtime\'+$dep.folder);[void][IO.Directory]::CreateDirectory($targetRoot)
     $zip=[IO.Compression.ZipFile]::OpenRead($archive)
-    try{foreach($entry in $zip.Entries){Pump;$target=Safe-Target $targetRoot $entry.FullName;if(!$entry.Name){continue};[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target));[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true)}}finally{$zip.Dispose()}
+    try{foreach($entry in $zip.Entries){Pump;$relative=$entry.FullName;if($dep.stripRoot){$relative=$relative -replace '^[^/]+/',''};if(!$relative -or !$entry.Name){continue};$target=Safe-Target $targetRoot $relative;[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target));[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true)}}finally{$zip.Dispose()}
    }
   }
   # Microsoft's official per-user evergreen bootstrapper; validate Authenticode before execution.
@@ -142,7 +143,7 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.4.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.5.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true

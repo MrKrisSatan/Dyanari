@@ -8,6 +8,7 @@ import { Scheduler, schedulerDefinitions } from "./scheduler.mjs";
 import { CreativeEngine, creativeDefinitions } from "./creative.mjs";
 import { ResourceManager } from "./resources.mjs";
 import { DevelopmentEngine, developmentDefinitions } from "./development.mjs";
+import { LinkedProjectEngine, linkedProjectDefinitions } from './linked-projects.mjs';
 import {
   ActionEngine,
   actionDefinitions,
@@ -36,6 +37,8 @@ export const defaults = {
   projectRecipes: [],
   gitAuthorName: '',
   gitAuthorEmail: '',
+  linkedProjectsEnabled: false,
+  linkedProjects: [],
   computerMode: "observe",
   approvedApps: [],
   approvedWorkflows: [],
@@ -85,6 +88,7 @@ export class Core {
     this.creative = new CreativeEngine(this);
     this.actions = new ActionEngine(this);
     this.development = new DevelopmentEngine(this);
+    this.linkedProjects = new LinkedProjectEngine(this);
   }
   log(kind, detail) {
     this.db
@@ -93,6 +97,7 @@ export class Core {
   }
   toolAvailable(name) {
     const s = this.settings;
+    if (linkedProjectDefinitions.some(([n])=>n===name)) return this.linkedProjects.allowed();
     if (developmentDefinitions.some(([n]) => n === name)) return this.development.allowed(name);
     if (["search_web", "fetch_page"].includes(name)) return s.internet;
     if (
@@ -145,6 +150,7 @@ export class Core {
       this.controllers?.forEach((c) => c.abort());
       this.actions?.cancel();
       this.development?.cancel();
+      this.linkedProjects?.cancel();
     }
     return this._settings;
   }
@@ -170,6 +176,7 @@ export class Core {
       "gitAccess",
       "githubAccess",
       "development",
+      "linkedProjectsEnabled",
     ])
       if (typeof s[k] !== "boolean") throw Error("Invalid " + k);
     if (!["observe", "assist", "autonomous"].includes(s.computerMode))
@@ -232,6 +239,20 @@ export class Core {
       if (this.sensitive(p) || !s.workspaces.some(w => w.write && this.inside(w.path,p))) throw Error('Recipe must be in an approved writable workspace');
       return {id:r.id,name:r.name,path:p,tool:r.tool,args:r.args,timeoutSeconds:r.timeoutSeconds};
     });
+    if (!Array.isArray(s.linkedProjects) || s.linkedProjects.length>20) throw Error('At most 20 linked projects are supported');
+    if(v.workspaces&&!Object.hasOwn(v,'linkedProjects'))s.linkedProjects=s.linkedProjects.filter(p=>s.workspaces.some(w=>w.write&&this.inside(w.path,p.path)));
+    const projectIds=new Set();
+    s.linkedProjects=s.linkedProjects.map(p=>{
+      if(!p||typeof p.id!=='string'||!/^[\w-]{1,80}$/.test(p.id)||projectIds.has(p.id)||!['rea','local'].includes(p.kind))throw Error('Invalid linked project id/kind');projectIds.add(p.id);
+      if(typeof p.name!=='string'||!p.name.trim()||p.name.length>120||!Number.isInteger(p.timeoutSeconds)||p.timeoutSeconds<1||p.timeoutSeconds>1200)throw Error('Invalid project name or timeout');
+      if(!Object.hasOwn(v,'linkedProjects')&&(!s.linkedProjectsEnabled||!s.tools||!s.runTools||!s.read))return structuredClone(p);
+      const root=fs.realpathSync(p.path);if(this.sensitive(root)||!s.workspaces.some(w=>w.write&&this.inside(w.path,root))||!fs.statSync(root).isDirectory())throw Error('Linked project needs an approved writable workspace');
+      if(!Array.isArray(p.approvedTools)||p.approvedTools.length>2000||p.approvedTools.some(t=>typeof t!=='string'||!t.length||t.length>250||/[\s\0]/.test(t)))throw Error('Invalid approved MCP tool names');
+      if(p.kind==='rea')return {id:p.id,kind:'rea',name:p.name,path:root,tool:'node',args:['mcp'],approvedTools:[...new Set(p.approvedTools)],timeoutSeconds:p.timeoutSeconds};
+      if(!['node','python'].includes(p.tool)||!Array.isArray(p.args)||!p.args.length||p.args.length>100||p.args.some(a=>typeof a!=='string'||a.length>8000||a.includes('\0'))||!path.isAbsolute(p.args[0]))throw Error('Use an absolute local Node/Python MCP entry script');
+      const entry=fs.realpathSync(p.args[0]);if(this.sensitive(entry)||!fs.statSync(entry).isFile()||!s.workspaces.some(w=>this.inside(w.path,entry)))throw Error('MCP entry script is outside approved workspaces');
+      return {id:p.id,kind:'local',name:p.name,path:root,tool:p.tool,args:[entry,...p.args.slice(1)],approvedTools:[...new Set(p.approvedTools)],timeoutSeconds:p.timeoutSeconds};
+    });
     this.controllers.forEach((c) => c.abort());
     this.actions?.cancel();
     this.development?.cancel();
@@ -240,6 +261,8 @@ export class Core {
       .prepare("INSERT OR REPLACE INTO settings VALUES(1,?)")
       .run(JSON.stringify(s));
     this._persistedSettings = JSON.stringify(s);
+    this.linkedProjects?.pending.clear();
+    this.linkedProjects?.reconcile();
     this.log("permissions", "Settings changed; active tasks cancelled");
     return s;
   }
@@ -445,6 +468,7 @@ export class Core {
     if (!a || typeof a !== "object" || Array.isArray(a))
       throw Error("Invalid tool arguments");
     this.log("tool", name + " " + JSON.stringify(a));
+    if(linkedProjectDefinitions.some(([n])=>n===name))return this.linkedProjects.execute(name,a,signal);
     if (developmentDefinitions.some(([n]) => n === name)) return this.development.execute(name, a, signal);
     if (actionDefinitions.some(([n]) => n === name))
       return this.actions.execute(name, a, signal);
@@ -547,6 +571,7 @@ export function publicIP(ip) {
   );
 }
 export const toolDefinitions = [
+  ...linkedProjectDefinitions,
   ...developmentDefinitions,
   ...actionDefinitions,
   ...fileDefinitions,

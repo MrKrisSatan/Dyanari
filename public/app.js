@@ -88,6 +88,7 @@ async function refresh(history = false) {
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
   renderComputerState(s, state.actions);
   renderDevelopment(s,state.development);
+  renderLinkedProjects(s,state.linkedProjects);
   $("quietStart").value = s.quietStart;
   $("quietEnd").value = s.quietEnd;
   $("modelSelect").replaceChildren();
@@ -929,3 +930,34 @@ $('saveGitAuthor').onclick=()=>safe(()=>updateSettings({gitAuthorName:$('gitAuth
 for(const [id,name]of [['developmentStatus','git_status'],['developmentDiff','git_diff']])$(id).onclick=()=>safe(async()=>{$('developmentInspection').textContent=JSON.stringify(await api('tool',{name,arguments:{path:$('developmentRepo').value}}),null,2)});
 $('addProjectRecipe').onclick=()=>safe(()=>updateSettings({projectRecipes:[...(state.settings.projectRecipes||[]),{id:crypto.randomUUID(),name:$('recipeName').value,path:$('recipePath').value,tool:$('recipeTool').value,args:JSON.parse($('recipeArgs').value),timeoutSeconds:Number($('recipeTimeout').value)}]}));
 $('refreshDevelopment').onclick=()=>safe(()=>refresh());
+
+function renderLinkedProjects(s, linked) {
+ $('linkedProjectsEnabled').checked=!!s.linkedProjectsEnabled;
+ const selected=$('linkedProjectSelect').value;$('linkedProjectSelect').replaceChildren();$('linkedProjectList').replaceChildren();
+ for(const p of linked?.projects||[]){
+  const option=document.createElement('option');option.value=p.id;option.textContent=p.name;$('linkedProjectSelect').append(option);
+  const box=document.createElement('div');box.className='card';$('linkedProjectList').append(box);
+  card(box,p.name+' · '+(p.connected?'connected ('+p.toolCount+' tools)':p.installed?'stopped':'not installed')+'\n'+p.path,[
+   ['Install REA',async()=>{const r=await api('tool',{name:'install_linked_project',arguments:{id:p.id}});notice(r.message);await refresh()}],
+   ['Start / connect',async()=>{const r=await api('tool',{name:'start_linked_project',arguments:{id:p.id}});notice(r.message);await refresh()}],
+   ['Stop',async()=>{await api('tool',{name:'stop_linked_project',arguments:{id:p.id}});await refresh()}],
+   ['Unlink',async()=>updateSettings({linkedProjects:state.settings.linkedProjects.filter(x=>x.id!==p.id)})]
+  ]);
+  const label=document.createElement('label');label.textContent='Allowed tool names (one per line)';const allowed=document.createElement('textarea');allowed.value=p.approvedTools.join('\n');label.append(allowed);box.append(label);
+  const save=document.createElement('button');save.textContent='Save tool access';save.onclick=()=>safe(()=>updateSettings({linkedProjects:state.settings.linkedProjects.map(x=>x.id===p.id?{...x,approvedTools:allowed.value.split(/\r?\n/).map(t=>t.trim()).filter(Boolean)}:x)}));box.append(save);
+  const logs=document.createElement('details');const title=document.createElement('summary');title.textContent='Server logs';const pre=document.createElement('pre');pre.textContent=p.log;logs.append(title,pre);box.append(logs);
+ }
+ if([...$('linkedProjectSelect').options].some(o=>o.value===selected))$('linkedProjectSelect').value=selected;
+ $('linkedProjectApprovals').replaceChildren();
+ for(const p of linked?.pending||[])card($('linkedProjectApprovals'),p.summary,[
+  ['Approve exact operation',async()=>{if(!confirm('Execute this exact external project operation?\n\n'+p.summary))return;const timer=setInterval(()=>safe(()=>refresh()),2000);try{$('linkedToolResult').textContent=JSON.stringify(await api('linked-projects/confirm',{id:p.id,approved:true}),null,2)}finally{clearInterval(timer);await refresh()}}],
+  ['Reject',async()=>{await api('linked-projects/reject',{id:p.id});await refresh()}]
+ ]);
+ $('linkedProjectRuns').replaceChildren();for(const r of linked?.runs||[])card($('linkedProjectRuns'),r.operation+' · '+r.status+'\n'+(r.error||'')+'\n'+(r.output||'')+'\n'+(r.result?JSON.stringify(r.result,null,2):''));
+}
+$('linkedProjectsEnabled').onchange=()=>safe(()=>updateSettings({linkedProjectsEnabled:$('linkedProjectsEnabled').checked}));
+$('addReaProject').onclick=()=>safe(()=>updateSettings({linkedProjects:[...(state.settings.linkedProjects||[]),{id:crypto.randomUUID(),kind:'rea',name:'REA 6.8.0',path:$('linkedProjectPath').value,tool:'node',args:['mcp'],approvedTools:[],timeoutSeconds:180}]}));
+$('addLocalLinkedProject').onclick=()=>safe(()=>updateSettings({linkedProjects:[...(state.settings.linkedProjects||[]),{id:crypto.randomUUID(),kind:'local',name:$('linkedProjectName').value,path:$('linkedProjectPath').value,tool:$('linkedProjectTool').value,args:JSON.parse($('linkedProjectArgs').value),approvedTools:[],timeoutSeconds:180}]}));
+$('discoverLinkedTools').onclick=()=>safe(async()=>{$('linkedToolCatalog').textContent=JSON.stringify(await api('tool',{name:'list_linked_project_tools',arguments:{id:$('linkedProjectSelect').value,query:$('linkedToolQuery').value}}),null,2)});
+$('previewLinkedTool').onclick=()=>safe(async()=>{JSON.parse($('linkedToolArguments').value);const r=await api('tool',{name:'call_linked_project_tool',arguments:{id:$('linkedProjectSelect').value,tool:$('linkedToolName').value,arguments_json:$('linkedToolArguments').value}});notice(r.message);await refresh()});
+$('refreshLinkedProjects').onclick=()=>safe(()=>refresh());
