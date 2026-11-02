@@ -1,9 +1,9 @@
 {
-  "version": "0.5.0",
-  "sha256": "EE451EFC0A94682B1BBF8C4046D15E7A717233B41CFA5CAE7EABDCB699DDB62A",
-  "bytes": 158072987,
-  "sourceCommit": "a7a8667bf5200945d7fef83af896a9c160a142e4",
-  "automatedTests": 63,
+  "version": "0.6.0",
+  "sha256": "1C0175DF4B6A86A36F8EDA7765DD736E4CD6EFE7DEE2449E60E49932221022A8",
+  "bytes": 158080155,
+  "sourceCommit": "d68b2ede8cb1504c249bdcb4710d855a58a07bc5",
+  "automatedTests": 77,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -19,9 +19,9 @@
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.5.0.exe",
-    "sha256": "E2DC0C38DC1F58B67614F5441A15FBA6B19CE40302B79FA450DD07A371F3AA64",
-    "bytes": 209757204
+    "file": "DyanariSetup-0.6.0.exe",
+    "sha256": "A0FD93C9733564C9F764E62FB42CAE09E03E87370087592B35CE1F62ED31184F",
+    "bytes": 209764372
   },
   "development": {
     "actualProjectTests": 7,
@@ -41,5 +41,14 @@
     "realAnalysis": "passed: owned JavaScript application, 2 parsed JS files, zero parse failures",
     "installation": "pinned npm integrity verified, lifecycle scripts disabled",
     "httpAcceptanceChecks": 19
+  },
+  "memoryReview": {
+    "extraction": "optional local heuristics; proposals require review",
+    "consolidation": "transactional, same-project, single-use preview and guarded undo",
+    "realModelRecall": "passed: Qwen3 4B Instruct, Qwen3-VL 2B, backend restart",
+    "legacyDatabase": "passed: ids, text, project scopes and vector cache preserved",
+    "desktopUi": "verified: memory categories, suggestions, recovery and export controls",
+    "httpAcceptance": "passed: review, private omission, merge/undo, search/export, metadata backup and large Unicode restore",
+    "unitTests": 14
   }
 }

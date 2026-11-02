@@ -9,6 +9,7 @@ import { CreativeEngine, creativeDefinitions } from "./creative.mjs";
 import { ResourceManager } from "./resources.mjs";
 import { DevelopmentEngine, developmentDefinitions } from "./development.mjs";
 import { LinkedProjectEngine, linkedProjectDefinitions } from './linked-projects.mjs';
+import { MemoryLedger } from './memory-ledger.mjs';
 import {
   ActionEngine,
   actionDefinitions,
@@ -39,6 +40,7 @@ export const defaults = {
   gitAuthorEmail: '',
   linkedProjectsEnabled: false,
   linkedProjects: [],
+  memorySuggestionsEnabled: false,
   computerMode: "observe",
   approvedApps: [],
   approvedWorkflows: [],
@@ -89,6 +91,7 @@ export class Core {
     this.actions = new ActionEngine(this);
     this.development = new DevelopmentEngine(this);
     this.linkedProjects = new LinkedProjectEngine(this);
+    this.memoryLedger = new MemoryLedger(this);
   }
   log(kind, detail) {
     this.db
@@ -151,6 +154,7 @@ export class Core {
       this.actions?.cancel();
       this.development?.cancel();
       this.linkedProjects?.cancel();
+      this.memoryLedger?.merges.clear();
     }
     return this._settings;
   }
@@ -177,6 +181,7 @@ export class Core {
       "githubAccess",
       "development",
       "linkedProjectsEnabled",
+      "memorySuggestionsEnabled",
     ])
       if (typeof s[k] !== "boolean") throw Error("Invalid " + k);
     if (!["observe", "assist", "autonomous"].includes(s.computerMode))
@@ -263,6 +268,7 @@ export class Core {
     this._persistedSettings = JSON.stringify(s);
     this.linkedProjects?.pending.clear();
     this.linkedProjects?.reconcile();
+    this.memoryLedger?.merges.clear();
     this.log("permissions", "Settings changed; active tasks cancelled");
     return s;
   }
@@ -528,11 +534,7 @@ export class Core {
     }
   }
   memories(q = "") {
-    return this.db
-      .prepare(
-        "SELECT * FROM memories WHERE content LIKE ? ORDER BY id DESC LIMIT 100",
-      )
-      .all("%" + q + "%");
+    return this.memoryLedger.list({query:q,limit:500});
   }
   retrieve(q) {
     const words = q.toLowerCase().match(/[a-z0-9]{3,}/g) || [];
@@ -548,12 +550,8 @@ export class Core {
       .sort((a, b) => b.score - a.score)
       .slice(0, 8);
   }
-  remember(content, project = "") {
-    if (typeof content !== "string" || !content.trim() || content.length > 4000)
-      throw Error("Invalid memory");
-    this.db
-      .prepare("INSERT OR IGNORE INTO memories(content,project) VALUES(?,?)")
-      .run(content.trim(), String(project).slice(0, 100));
+  remember(content, project = "",options={}) {
+    return this.memoryLedger.add(content,project,{source:'explicit',...options});
   }
 }
 export function publicIP(ip) {
