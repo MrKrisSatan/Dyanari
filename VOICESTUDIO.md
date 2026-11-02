@@ -16,9 +16,9 @@ Start the installed service, refresh status, then Create Dyanari's British voice
 
 Use `-Data <actual Dyanari data directory>` when running manually for an installed/shared profile. The in-app setup passes this automatically. Without model consent, setup installs only the runtime/studio. Voice setup also downloads the MIT-licensed Systran/faster-whisper-base model at revision ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66 for reviewed local transcription. Installed app data normally lives in `%LOCALAPPDATA%\Dyanari\data`; portable builds use `data` beside the executable.
 
-## Dyanari — Velvet British
+## Dyanari — British Velvet
 
-The designed voice is an adult British female, low pitched, softly breathy and intimate, at 0.92 speed. It uses a fixed seed (424242) and a persisted VoiceStudio identity sample. The natural description is saved alongside supported engine tags. OmniVoice accepts gender, age, pitch, whisper and British accent tags; it cannot guarantee subjective “sexy/sultry” timbre or interpret arbitrary emotional prose. Preview the actual sound and refine/select another identity in the full studio. Creating a new design never overwrites an existing voice.
+The current design is a mature adult British female voice, low pitched and fully voiced, at 0.94 speed. It removes the whisper attribute, uses a new seed (424243) and saves a separate identity sample. The description aims for a warm, husky, confident British Jessica Rabbit character style; it does not clone an actor. OmniVoice accepts only a limited attribute vocabulary, so subjective timbre and acting style need audition/refinement in the full studio. The previous Velvet British whisper profile is preserved and can still be selected.
 
 The selected profile id, engine and speed are SQLite settings independent of the chat model. VoiceStudio profiles, samples and history reside separately in `<Dyanari data>/voicestudio`; voice-runtime/model cache is separate. Memory/chat JSON backups do not include these large voice assets. Back up the voice data directory as well when moving computers.
 

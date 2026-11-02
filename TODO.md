@@ -4,6 +4,8 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Next work, in order
 
+- [x] **CREATIVE-03 · Qwen Image 2.1 and optional inspiration.** Hardware-selected complete bundles, pinned isolated ComfyUI/GGUF runtime, requested chat images, actual PNG delivery, theme-only local-model decisions, quiet hours, quotas and persistent Stop pause. Evidence: 17 image unit tests, image/chat HTTP acceptance, actual Q2/Q4 512×512/25-step renders and Qwen3 4B decision → real Q4 artwork → consumed quota without chat-memory capture; [0.9](RELEASE-0.9.md). Higher tiers, CPU/AMD rendering and clean-machine installation remain unverified.
+
 - [x] **VOICE-04 · VoiceStudio integration and Dyanari voice.** Pinned separate local backend/full studio, optional setup, saved British adult female design, real TTS, reviewed Whisper base transcription, lifecycle and permission controls. Evidence: 11 unit tests, voice HTTP acceptance, actual source/runtime/model installation, real speech + ASR and identical saved identity after service restart; [0.8](RELEASE-0.8.md). Optional advanced jobs/engines and GPU acceleration remain unverified.
 
 - [x] **AGT-01 · Persistent project tasks.** Original request/workspace, real step results, approval continuation, required verification, Stop/revocation and restart recovery implemented. Evidence: 14 task tests, project-task HTTP acceptance and an actual Qwen3 4B Instruct → approval → real command → automatic continuation flow; [0.7](RELEASE-0.7.md). Finished remains a model-turn status, not proof of all requested behavior.
@@ -46,7 +48,7 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 - [ ] **MCP-02 · Additional MCP transports/providers.** Authenticated loopback HTTP/SSE, schema bounds and real provider acceptance. REA native providers are not yet installed/validated.
 - [ ] **DOC-03 · Broader formats.** PDF annotation/editing, presentations, images and structured exports with validation and recovery.
 - [ ] **WEB-02 · Research/download management.** Search-provider selection, evidence/source records, approved downloads and durable research tasks.
-- [ ] **CREATIVE-01 · Portable creative setup.** Reproducible ComfyUI/Python/CUDA environment independent of a developer's Forge installation, with optional pinned checkpoints.
+- [x] **CREATIVE-01 · Portable creative setup.** Separate frozen Python/CPU-or-CUDA environment, pinned ComfyUI/GGUF and optional complete Qwen bundles, independent of Forge packages. Actual isolated setup and GPU rendering passed; [guide](QWEN-IMAGE.md). Fresh-machine acceptance remains REL-01.
 - [ ] **CREATIVE-02 · Advanced creative workflows.** Image editing/inpainting, animation, assets for games, music/audio workflows and bounded GPU scheduling.
 - [ ] **AVATAR-01 · Character appearance.** Editable local avatar and speech-reactive animation, without substituting visuals for working capabilities.
 - [ ] **PROACTIVE-01 · Stronger scheduling.** Durable task/reminder execution, missed-run handling and optional background service, all opt-in with quiet hours and visible cancellation.
@@ -57,7 +59,7 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Latest handoff
 
-0.7 adds the durable tracker/handoff and AGT-01/SEC-02. Continue with REL-01 if a clean supported Windows VM is available; otherwise DOC-01 is the next ready engineering milestone. Do not reimplement the checked foundations. Update this handoff and evidence when finishing another release.
+0.9 adds Qwen image setup, CREATIVE-01/03, bounded optional image inspiration and a fuller British voice identity (the previous whisper voice remains). Continue with REL-01 if a clean supported Windows VM is available; otherwise DOC-01 is the next ready engineering milestone. Do not reimplement the checked foundations. Update this handoff and evidence when finishing another release.
 
 ## Original brief phase map
 
@@ -66,9 +68,9 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 | 1 · Local AI | Native chat and local inference work; HF setup catalog exists | REL-01, CORE-04/05/06 |
 | 2 · Identity/memory | Persistent identity, retrieval and reviewed consolidation work | PERSONA-01, MEM-02/03 |
 | 3 · Internet/files | Scoped text/file tools and GitHub work; browser/structured formats incomplete | WEB-01/02, DOC-01/02/03 |
-| 4 · Voice | Initial Windows synthesis and recognition wiring | VOICE-01/02/03 |
+| 4 · Voice | Windows fallback, VoiceStudio speech/uploaded-WAV ASR and revised saved British voice | VOICE-01/02/03 |
 | 5 · Control/vision | Limited approved native workflows and local image inspection | WIN-02, SEC-01, wider device acceptance |
-| 6 · Creative | Tested workstation ComfyUI path and project tools | CREATIVE-01/02, CORE-06 |
+| 6 · Creative | Isolated Qwen runtime, actual requested/spontaneous renders and project tools | CREATIVE-02, CORE-06 |
 | 7 · Advanced/release | Public tested previews, tracker and task orchestration | AGT-02, AVATAR-01, PROACTIVE-01, MOBILE-01, REL-01/02/03/04 |
 
 These are partial phase summaries, not phase-completion checkmarks. Private user project names, relationship canon and character sheets are intentionally not copied into this public tracker.
