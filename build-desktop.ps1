@@ -1,4 +1,4 @@
-param([string]$Dotnet = 'dotnet')
+param([string]$Dotnet = 'dotnet', [ValidatePattern('^[A-Za-z0-9._-]+\.exe$')][string]$OutputName='Dyanari.exe')
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 & $Dotnet publish action-helper\Dyanari.Actions.csproj -c Release -r win-x64 --self-contained true -o runtime\actions -p:NuGetAudit=false
@@ -17,5 +17,5 @@ try {
 } finally { $zip.Dispose() }
 & $Dotnet publish desktop\Dyanari.csproj -c Release -r win-x64 --self-contained true -o desktop\publish -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed' }
-Copy-Item -LiteralPath desktop\publish\Dyanari.exe -Destination (Join-Path $PSScriptRoot 'Dyanari.exe') -Force
-Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'Dyanari.exe') -Algorithm SHA256
+Copy-Item -LiteralPath desktop\publish\Dyanari.exe -Destination (Join-Path $PSScriptRoot $OutputName) -Force
+Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $OutputName) -Algorithm SHA256

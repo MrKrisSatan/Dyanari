@@ -1,9 +1,9 @@
 {
   "version": "0.8.0",
-  "sha256": "14C3BA291C9E1DF3BE81385D716D865EB960D58FA12A3B6D352F6955DEC3F61E",
+  "sha256": "6AA210B95CF8601EEDD8AD3040D632FE64D5B5B59AFB422489D0F2CF15477C8C",
   "bytes": 158100635,
-  "sourceCommit": "6bd031bac70cbbe62355b8853e177326b5f062d9",
-  "automatedTests": 101,
+  "sourceCommit": "3c1d0037879c0125cd7eeae1b8388764147567f8",
+  "automatedTests": 102,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -20,7 +20,7 @@
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
     "file": "DyanariSetup-0.8.0.exe",
-    "sha256": "4E1FF7B6A872C6D3C308C14BD3076F852A8715B3146C36FC1E6F84234690E11D",
+    "sha256": "8BF1ACC86EED00873513561557F8D727D0781E89834DF8F5C8AD8C96D034DDAE",
     "bytes": 209795604
   },
   "development": {
@@ -66,12 +66,13 @@
     "version": "0.5.7",
     "realTranscription": "passed: Whisper base correctly transcribed generated preview, microphone never activated",
     "actualInstallation": "passed: isolated CPU Python dependencies, full studio frozen-lockfile web build, pinned TTS and Whisper weights",
-    "nativeShell": "loaded successfully; voice-page automation not completed because native click geometry was unavailable",
-    "unitTests": 10,
+    "nativeShell": "shell loaded; voice controls, saved identity and 0.92 speed verified in browser; native click automation geometry unavailable",
+    "unitTests": 11,
     "privateTerms": "public installers leave model consent unset",
     "realSpeech": "passed: actual OmniVoice speech, validated WAV and identical identity sample after service restart",
     "voice": "Velvet British: adult female, low pitch, whisper, fixed saved identity, 0.92 speed",
     "gpuVoice": "not validated; managed runtime uses CPU",
     "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
-  }
+  },
+  "desktopFile": "Dyanari-0.8.0.exe"
 }

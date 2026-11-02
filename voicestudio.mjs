@@ -30,7 +30,7 @@ export class VoiceStudio {
   this.require();if(audio){waveInfo(data);return data}return JSON.parse(data.toString('utf8'));
  }
  async state(){const base={enabled:this.core.settings.voiceStudioEnabled,url:this.url,installed:fs.existsSync(path.join(this.root,'INSTALL.json')),owned:!!this.child,installing:!!this.installer,active:!!this.active,identity:dyanariVoice,lastError:this.lastError};if(!base.enabled)return {...base,ready:false};try{return {...base,ready:true,health:await this.request('/health',{timeout:4000})}}catch(e){return {...base,ready:false,error:e.message}}}
- async catalog(){this.require();return {profiles:await this.request('/profiles'),engines:await this.request('/engines',{timeout:60000})}}
+ async catalog(){this.require();const profiles=await this.request('/profiles'),raw=await this.request('/engines',{timeout:60000});const rows=raw.tts?.backends||raw.backends||raw.engines||(Array.isArray(raw)?raw:[]);return {profiles,engines:rows.filter(e=>localVoiceEngines.includes(e.id)).map(e=>({...e,name:e.name||e.display_name||e.id}))}}
  async start(){
   this.require();if((await this.state()).ready)return {started:false,connected:true};
   const source=path.join(this.root,'source'),python=path.join(source,'.venv','Scripts','python.exe');if(!fs.existsSync(python))throw Error('Run setup-voicestudio.ps1 first; see VOICESTUDIO.md');
