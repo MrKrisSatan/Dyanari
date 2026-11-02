@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {VoiceStudio,validateStudio} from './voicestudio.mjs';
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -46,6 +47,12 @@ export const defaults = {
   computerMode: "observe",
   approvedApps: [],
   approvedWorkflows: [],
+  voiceStudioEnabled: false,
+  voiceStudioPort: 3900,
+  voiceStudioEngine: 'omnivoice',
+  voiceStudioProfile: '',
+  voiceStudioSpeed: 0.92,
+  speechProvider: 'windows',
   speakReplies: false,
   voice: "Microsoft Hazel Desktop",
   quietStart: 22,
@@ -83,6 +90,7 @@ export class Core {
       ),
     };
     this.controllers = new Set();
+    this.voiceStudio = new VoiceStudio(this);
     this._persistedSettings =
       this.db.prepare("SELECT value FROM settings WHERE id=1").get()?.value ||
       "";
@@ -159,6 +167,7 @@ export class Core {
       this.linkedProjects?.cancel();
       this.memoryLedger?.merges.clear();
       this.agentTasks?.pauseAll('Settings changed in another instance');
+      this.voiceStudio?.reconcile();
     }
     return this._settings;
   }
@@ -201,6 +210,7 @@ export class Core {
       s.approvedWorkflows.some((w) => !supportedWorkflows.includes(w))
     )
       throw Error("Unsupported autonomous workflow");
+    validateStudio(s);
     if (typeof s.voice !== "string" || s.voice.length > 200)
       throw Error("Invalid voice name");
     for (const k of ["quietStart", "quietEnd"])
@@ -270,6 +280,7 @@ export class Core {
     this.actions?.cancel();
     this.development?.cancel();
     this.settings = s;
+    this.voiceStudio?.reconcile();
     this.db
       .prepare("INSERT OR REPLACE INTO settings VALUES(1,?)")
       .run(JSON.stringify(s));

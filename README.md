@@ -4,7 +4,7 @@ A local Windows AI companion and practical assistant, powered by Ollama. Convers
 
 ## Download
 
-[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.7.0). Select **DyanariSetup-0.7.0.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
+[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.8.0). Select **DyanariSetup-0.8.0.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
 
 Setup detects RAM and NVIDIA VRAM, recommends a Hugging Face abliterated GGUF model, and installs Dyanari, Ollama and WebView2 when needed. Model downloads are optional and checked against pinned revisions, sizes and SHA-256 hashes. Internet is required during setup; inference runs locally afterward.
 
@@ -34,7 +34,7 @@ Internet, file changes and computer control have separate permissions. Optional 
 
 Early preview; the full project brief is not complete. Arbitrary shell commands, general browser/computer automation, automatic conflict repair, structured Office editing and mobile access are not implemented. Approved build/test recipes execute real code with the Windows account permissions and are not sandboxed. Small local models may struggle with complex coding and long tasks. Community “abliterated” descriptions do not guarantee behavior or quality.
 
-Passed: 91 application tests, 19 development/MCP HTTP checks, real GitHub authentication/clone/pull and cloned-project tests, plus 11 packaged installer checks, desktop extraction and an isolated application-only staging install using the verified Ollama archive. Fresh-machine model import, WebView2 installation, shortcut/uninstall registration and first launch still require acceptance testing. See [project tasks and handoff](RELEASE-0.7.md), [memory review](RELEASE-0.6.md), [linked projects and REA](RELEASE-0.5.md), [GitHub and build/test tools](RELEASE-0.4.md), [Windows tools](RELEASE-0.3.md) and [installer details](INSTALLER.md).
+Passed: 102 application/service tests, 19 development/MCP HTTP checks, real GitHub authentication/clone/pull and cloned-project tests, plus 13 packaged installer checks, desktop extraction and an isolated application-only staging install using the verified Ollama archive. Fresh-machine model import, WebView2 installation, shortcut/uninstall registration and first launch still require acceptance testing. See [project tasks and handoff](RELEASE-0.7.md), [memory review](RELEASE-0.6.md), [linked projects and REA](RELEASE-0.5.md), [GitHub and build/test tools](RELEASE-0.4.md), [Windows tools](RELEASE-0.3.md) and [installer details](INSTALLER.md).
 
 ## Build
 
@@ -45,8 +45,10 @@ On Windows x64, install .NET 10 SDK and place an official Node.js 24 Windows x64
 .\build-installer.ps1 -Dotnet dotnet
 ```
 
-The installer embeds the fresh desktop build and writes `DyanariSetup-0.7.0.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
+The installer embeds the fresh desktop build and writes `DyanariSetup-0.8.0.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
 
 For source development, `npm start` starts the loopback backend; configure local Ollama separately. `npm test` runs core tests. `npm run test:services` needs optional local services. Read integration-script prerequisites before running them; they perform real operations in isolated test workspaces.
 
 Chat, memory databases, weights, credentials, runtime binaries and caches are excluded from Git. Historical reports describe an optional development-machine configuration, not a portable dependency bundle.
+
+VoiceStudio integration: [Dyanari voice and setup guide](VOICESTUDIO.md), [0.8 release notes](RELEASE-0.8.md). Includes a persisted Velvet British voice design, local speech/transcription and access to the full upstream studio. CPU synthesis can be slow; public installers leave it disabled until setup and model consent.
