@@ -1,9 +1,9 @@
 {
-  "version": "0.3.0",
-  "sha256": "B2A372B039488B2F42020173F53595BB88D30C1FF4A62B0D8A2277F6B7353BAD",
-  "bytes": 158051995,
-  "sourceCommit": "520e0ae084f865122c6e07b7bfe0b3f19010d70f",
-  "automatedTests": 43,
+  "version": "0.4.0",
+  "sha256": "5E7F6AB84D4AB8299F2B58433268810247FD9D6AD9E810D3B892B7E8C33013C7",
+  "bytes": 158063771,
+  "sourceCommit": "e4d7f39f14abb37dae384128755a02064d0f51ef",
+  "automatedTests": 54,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -19,8 +19,17 @@
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.3.1.exe",
-    "sha256": "BABB92DBA88ADB5EB7E095E17E93EC0466B30F4426052BC14A80E9F9B8D0AAC1",
-    "bytes": 209734676
+    "file": "DyanariSetup-0.4.0.exe",
+    "sha256": "68C5ECD5B40FFABA6570A0031E69E4077EBBE695F333922B65CD5CB01AC6410C",
+    "bytes": 209747988
+  },
+  "development": {
+    "actualProjectTests": 7,
+    "realDotnetBuild": "passed: actual compiled DLL and failed broken build",
+    "githubCi": "passed: push and pull request",
+    "pullRequest": "https://github.com/MrKrisSatan/Dyanari/pull/1",
+    "httpAcceptanceChecks": 10,
+    "unitTests": 11,
+    "liveGithub": "passed: account, list, clone, pull, branch, explicit commit, push, pull request"
   }
 }

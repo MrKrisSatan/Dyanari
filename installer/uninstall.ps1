@@ -15,6 +15,8 @@ if(Test-Path -LiteralPath $runtime){
 }
 $shortcut=Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari.lnk'
 if(Test-Path -LiteralPath $shortcut){Remove-Item -LiteralPath $shortcut -Force}
+$login=Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari - Connect GitHub.lnk'
+if(Test-Path -LiteralPath $login){Remove-Item -LiteralPath $login -Force}
 Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari' -Recurse -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $PSCommandPath -Force
 [Windows.Forms.MessageBox]::Show('Dyanari removed. Memory and models have been preserved.','Dyanari')|Out-Null

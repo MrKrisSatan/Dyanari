@@ -16,6 +16,7 @@
         ><button data-tab="memory">Memory</button
         ><button data-tab="tools">Tools & permissions</button
         ><button data-tab="actions">Computer & checks</button
+        ><button data-tab="development">Development</button
         ><button data-tab="models">Models</button
         ><button data-tab="personality">Personality</button
         ><button data-tab="activity">Activity & recovery</button
@@ -428,6 +429,35 @@
         <div class="card">
           Android / remote access: disabled · loopback connections only
         </div>
+      </section>
+      <section id="development" class="page hidden">
+        <h2>Repositories, builds & tests</h2>
+        <p>Enable Tools & File Access, Read Files and Run Tools first. Approve workspace folders in Tools & permissions. Every command, local Git change and GitHub write requires a fresh preview approval.</p>
+        <label><input type="checkbox" id="gitAccess" /> Local Git tools</label>
+        <label><input type="checkbox" id="githubAccess" /> GitHub access (also requires Internet Access)</label>
+        <label><input type="checkbox" id="developmentAccess" /> Build & test runner</label>
+        <p id="developmentTools"></p>
+        <div class="card"><h3>GitHub account and repositories</h3>
+          <p>Use “Dyanari - Connect GitHub” in the Windows Start menu to sign in with the bundled official GitHub CLI. Source users can use Git Credential Manager or <code>gh auth login</code>. Tokens are never stored in Dyanari's memory or shown to the chat model. The bundled GitHub CLI shares its account login with other GitHub CLI installations.</p>
+          <button id="githubAccount">Check connected account</button><pre id="githubAccountResult"></pre>
+          <label>Approved repositories, one owner/repository per line<textarea id="githubRepositories" placeholder="your-name/your-project"></textarea></label>
+          <button id="saveGithubRepositories">Save repository access</button>
+          <label>Git commit author name (optional)<input id="gitAuthorName" /></label><label>Git commit email (optional; GitHub noreply email is supported)<input id="gitAuthorEmail" /></label><button id="saveGitAuthor">Save commit identity</button>
+          <label>Local repository root<input id="developmentRepo" placeholder="C:\Projects\MyProject" /></label>
+          <button id="developmentStatus">Git status</button><button id="developmentDiff">Review diff</button><pre id="developmentInspection"></pre>
+          <p>Ask Dyanari to clone a repository, create a branch, commit named files, pull, push, list issues, or prepare an issue/comment/pull request. HTTPS github.com origins only; force pushes, resets, merges with conflicts and automatic conflict resolution are unavailable.</p>
+        </div>
+        <div class="card"><h3>Approved build & test recipes</h3>
+          <p>Commands execute project code with your Windows account permissions, including file and network access. This runner is not a sandbox. Only approve commands and projects you trust. A failed exit code is shown as a failed run.</p>
+          <label>Name<input id="recipeName" placeholder="Run project tests" /></label>
+          <label>Working folder<input id="recipePath" placeholder="C:\Projects\MyProject" /></label>
+          <label>Tool<select id="recipeTool"><option>node</option><option>npm</option><option>dotnet</option><option>python</option></select></label>
+          <label>Arguments as JSON<input id="recipeArgs" value='["--test"]' /></label>
+          <label>Timeout in seconds<input id="recipeTimeout" type="number" min="1" max="1200" value="300" /></label>
+          <button id="addProjectRecipe">Save recipe</button><div id="projectRecipes"></div>
+        </div>
+        <div class="card"><h3>Pending execution approvals</h3><div id="developmentApprovals"></div></div>
+        <div class="card"><h3>Recent runs</h3><button id="refreshDevelopment">Refresh progress</button><div id="developmentRuns"></div></div>
       </section>
       <div id="notice" role="status"></div>
     </main>
