@@ -4,7 +4,7 @@ A local Windows AI companion and practical assistant, powered by Ollama. Convers
 
 ## Download
 
-[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.10.0). Select **DyanariSetup-0.10.0.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
+[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.10.1). Select **DyanariSetup-0.10.1.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
 
 Setup detects RAM and NVIDIA VRAM, recommends a Hugging Face abliterated GGUF model, and installs Dyanari, Ollama and WebView2 when needed. Model downloads are optional and checked against pinned revisions, sizes and SHA-256 hashes. Internet is required during setup; inference runs locally afterward.
 
@@ -35,7 +35,7 @@ Internet, file changes and computer control have separate permissions. Optional 
 
 Early preview; the full project brief is not complete. Arbitrary shell commands, general browser/computer automation, automatic conflict repair, structured Office editing and mobile access are not implemented. Approved build/test recipes execute real code with the Windows account permissions and are not sandboxed. Small local models may struggle with complex coding and long tasks. Community “abliterated” descriptions do not guarantee behavior or quality.
 
-Passed: 136 tests (125 Node application, seven Python installer and four local-service) plus authenticated 3D/image/voice/development/memory/task HTTP acceptance. Real inference and packaged self-test counts/hashes are recorded separately in [BUILD-INFO.json](BUILD-INFO.json). Earlier releases also validated local vision/speech, GitHub authentication/clone/pull and isolated application-only staging with the verified Ollama archive. Fresh-machine installation still requires acceptance testing. See [3D integration](RELEASE-0.10.md) and [installer details](INSTALLER.md).
+Current second-machine checks: 117 service-independent Node tests (including two new installer regressions), seven Python installer tests, and six authenticated HTTP acceptance scripts. See [0.10.1 setup fixes](RELEASE-0.10.1.md) and [second-machine acceptance](SECOND-MACHINE-ACCEPTANCE.md) for real runtime evidence and remaining limits. Real inference and packaged self-test counts/hashes are recorded separately in [BUILD-INFO.json](BUILD-INFO.json). Earlier releases also validated local vision/speech, GitHub authentication/clone/pull and isolated application-only staging with the verified Ollama archive. Fresh-machine installation still requires acceptance testing. See [3D integration](RELEASE-0.10.md) and [installer details](INSTALLER.md).
 
 ## Build
 
@@ -46,7 +46,7 @@ On Windows x64, install .NET 10 SDK and place an official Node.js 24 Windows x64
 .\build-installer.ps1 -Dotnet dotnet
 ```
 
-The installer embeds the fresh desktop build and writes `DyanariSetup-0.10.0.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
+The installer embeds the fresh desktop build and writes `DyanariSetup-0.10.1.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
 
 For source development, `npm start` starts the loopback backend; configure local Ollama separately. `npm test` runs core tests. `npm run test:services` needs optional local services. Read integration-script prerequisites before running them; they perform real operations in isolated test workspaces.
 

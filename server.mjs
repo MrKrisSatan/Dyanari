@@ -61,7 +61,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, {
         app: "dyanari",
         busy:busy||core.modelBusy||core.agentTasks.running,
-        version: "0.10.0",
+        version: "0.10.1",
         desktop: process.env.DYANARI_DESKTOP === "1",
       });
     res.setHeader("X-Content-Type-Options", "nosniff");

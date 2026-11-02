@@ -88,7 +88,20 @@ function Download($url,$target,$sha,$expected=0) {
   $task=$client.GetAsync($url,[Net.Http.HttpCompletionOption]::ResponseHeadersRead);while(!$task.IsCompleted){Pump;Start-Sleep -Milliseconds 80}
   $response=$task.GetAwaiter().GetResult();$response.EnsureSuccessStatusCode() | Out-Null
   $total=$response.Content.Headers.ContentLength;$source=$response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();$dest=[IO.File]::Create($target+'.partial')
-  try{$buffer=New-Object byte[] 1048576;$count=0L;while($true){$read=$source.ReadAsync($buffer,0,$buffer.Length);while(!$read.IsCompleted){Pump;Start-Sleep -Milliseconds 60};$n=$read.GetAwaiter().GetResult();if(!$n){break};$dest.Write($buffer,0,$n);$count+=$n;if($total){$progress.Value=[math]::Min(100,[int](100*$count/$total))};$status.Text="Downloading $(Split-Path $target -Leaf): $([math]::Round($count/1MB)) MiB";Pump}}finally{$dest.Dispose();$source.Dispose();$response.Dispose()}
+  # Copy on the .NET asynchronous I/O path. Poll only the UI, not every network
+  # read: sleeping after each small TLS read throttles multi-GB downloads.
+  try {
+   $copy=$source.CopyToAsync($dest,1048576)
+   while(!$copy.IsCompleted){
+    Pump
+    $count=$dest.Length
+    if($total){$progress.Value=[math]::Min(100,[int](100*$count/$total))}
+    $status.Text="Downloading $(Split-Path $target -Leaf): $([math]::Round($count/1MB)) MiB"
+    Start-Sleep -Milliseconds 100
+   }
+   [void]$copy.GetAwaiter().GetResult();$dest.Flush();$count=$dest.Length
+   Pump
+  } finally {$source.Dispose();$dest.Dispose();$response.Dispose()}
   if($expected -and $count -ne $expected){throw 'Unexpected download size'}
   if($sha){Check-Hash ($target+'.partial') $sha}
   Move-Item -LiteralPath ($target+'.partial') -Destination $target -Force
@@ -96,9 +109,13 @@ function Download($url,$target,$sha,$expected=0) {
 }
 function Run($exe,$arguments,$environment=@{}) {
  $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=$exe;$psi.Arguments=$arguments;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
+ $psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
  foreach($key in $environment.Keys){$psi.EnvironmentVariables[$key]=$environment[$key]}
  $p=[Diagnostics.Process]::Start($psi)
- try{while(!$p.HasExited){try{Pump}catch{try{$killInfo=New-Object Diagnostics.ProcessStartInfo;$killInfo.FileName='taskkill.exe';$killInfo.Arguments="/PID $($p.Id) /T /F";$killInfo.UseShellExecute=$false;$killInfo.CreateNoWindow=$true;$killer=[Diagnostics.Process]::Start($killInfo);$killer.WaitForExit();$killer.Dispose()}catch{};throw};Start-Sleep -Milliseconds 100};if($p.ExitCode -ne 0){throw "$exe exited with code $($p.ExitCode)"}}finally{$p.Dispose()}
+ # GUI setup has no console. Give CLI children valid pipes and drain BOTH while
+ # they run; otherwise Ollama can import successfully and hang on terminal I/O.
+ $stdout=$p.StandardOutput.ReadToEndAsync();$stderr=$p.StandardError.ReadToEndAsync()
+ try{while(!$p.HasExited){try{Pump}catch{try{$killInfo=New-Object Diagnostics.ProcessStartInfo;$killInfo.FileName='taskkill.exe';$killInfo.Arguments="/PID $($p.Id) /T /F";$killInfo.UseShellExecute=$false;$killInfo.CreateNoWindow=$true;$killer=[Diagnostics.Process]::Start($killInfo);$killer.WaitForExit();$killer.Dispose()}catch{};throw};Start-Sleep -Milliseconds 100};Write-Output $stdout.GetAwaiter().GetResult();Write-Output $stderr.GetAwaiter().GetResult();if($p.ExitCode -ne 0){throw "$exe exited with code $($p.ExitCode)"}}finally{$p.Dispose()}
 }
 Add-Type -AssemblyName System.Net.Http
 $installAction={
@@ -175,7 +192,7 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.10.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.10.1';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true
