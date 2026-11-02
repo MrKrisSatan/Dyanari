@@ -5,7 +5,7 @@ import {MemoryEngine} from './memory.mjs';
 import {redact} from './development.mjs';
 import {validToolArguments} from './validation.mjs';
 
-const files=new Set(['list_files','read_file','write_file','edit_file','search_files','search_text','file_metadata','check_project_file']);
+const files=new Set(['list_files','read_file','read_document','write_file','edit_file','search_files','search_text','file_metadata','check_project_file']);
 const builds=new Set(['list_project_recipes','run_project_recipe','list_development_runs']);
 const bounded=value=>{const json=redact(JSON.stringify(value));return json.length<=10000?json:JSON.stringify({truncated:true,passed:value?.passed,exitCode:value?.exitCode,error:value?.error,preview:json.slice(0,9000)})};
 export class AgentTasks {

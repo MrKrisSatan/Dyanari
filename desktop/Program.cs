@@ -20,11 +20,13 @@ internal static class Program
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "Dyanari", MessageBoxButtons.OK, MessageBoxIcon.Error);
         if (args.Contains("--self-test"))
         {
-            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")) && File.Exists(Path.Combine(location,"linked-projects.mjs")) && File.Exists(Path.Combine(location,"memory-ledger.mjs")) && File.Exists(Path.Combine(location,"agent-tasks.mjs")) && File.Exists(Path.Combine(location,"voicestudio.mjs")) && File.Exists(Path.Combine(location,"voicestudio-launch.py")) && File.Exists(Path.Combine(location,"setup-voicestudio.ps1")) && File.Exists(Path.Combine(location,"qwen-image.mjs")) && File.Exists(Path.Combine(location,"image-inspiration.mjs")) && File.Exists(Path.Combine(location,"image-catalog.json")) && File.Exists(Path.Combine(location,"image-runtime/uv.lock")) && File.Exists(Path.Combine(location,"image-runtime/dyanari_qwen_node.py")) && File.Exists(Path.Combine(location,"modly.mjs")) && File.Exists(Path.Combine(location,"modly-catalog.json")) && File.Exists(Path.Combine(location,"modly-runtime/worker.py")) && File.Exists(Path.Combine(location,"modly-runtime/shape/uv.lock")) && File.Exists(Path.Combine(location,"modly-runtime/trellis/uv.lock")) && File.Exists(Path.Combine(location,"public/mesh-viewer.js")), payload = location, version = "0.10.1" })); }
+            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "documents.mjs")) && File.Exists(Path.Combine(location, "document-worker.mjs")) && File.Exists(Path.Combine(location, "node_modules/pdfjs-dist/legacy/build/pdf.mjs")) && File.Exists(Path.Combine(location, "node_modules/saxes/saxes.js")) && File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")) && File.Exists(Path.Combine(location,"linked-projects.mjs")) && File.Exists(Path.Combine(location,"memory-ledger.mjs")) && File.Exists(Path.Combine(location,"agent-tasks.mjs")) && File.Exists(Path.Combine(location,"voicestudio.mjs")) && File.Exists(Path.Combine(location,"voicestudio-launch.py")) && File.Exists(Path.Combine(location,"setup-voicestudio.ps1")) && File.Exists(Path.Combine(location,"qwen-image.mjs")) && File.Exists(Path.Combine(location,"image-inspiration.mjs")) && File.Exists(Path.Combine(location,"image-catalog.json")) && File.Exists(Path.Combine(location,"image-runtime/uv.lock")) && File.Exists(Path.Combine(location,"image-runtime/dyanari_qwen_node.py")) && File.Exists(Path.Combine(location,"modly.mjs")) && File.Exists(Path.Combine(location,"modly-catalog.json")) && File.Exists(Path.Combine(location,"modly-runtime/worker.py")) && File.Exists(Path.Combine(location,"modly-runtime/shape/uv.lock")) && File.Exists(Path.Combine(location,"modly-runtime/trellis/uv.lock")) && File.Exists(Path.Combine(location,"public/mesh-viewer.js")), payload = location, version = "0.11.0" })); }
             catch (Exception e) { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = false, error = e.Message })); Environment.ExitCode = 1; }
             return;
         }
-        using var mutex = new Mutex(true, "Local\\Dyanari.Desktop.0.2", out var first);
+        var installedProfile = File.Exists(Path.Combine(AppContext.BaseDirectory, "installation.json"));
+        var mutexName = installedProfile ? "Local\\Dyanari.Desktop.0.2" : "Local\\Dyanari.Portable." + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(AppContext.BaseDirectory).ToUpperInvariant())))[..16];
+        using var mutex = new Mutex(true, mutexName, out var first);
         if (!first) { MessageBox.Show("Dyanari is already open. Select her window from the taskbar.", "Dyanari"); return; }
         Application.Run(new CompanionWindow());
     }
@@ -64,9 +66,10 @@ internal sealed class CompanionWindow : Form
     private bool shuttingDown;
     private bool shutdownComplete;
     private string apiToken = "";
+    private ResearchBrowser? researchBrowser;
     public CompanionWindow()
     {
-        Text = "Dyanari — Local Companion"; Width = 1240; Height = 860; MinimumSize = new Size(820, 620); StartPosition = FormStartPosition.CenterScreen;
+        Text = AppContext.BaseDirectory.Contains(".dyanari-test-", StringComparison.OrdinalIgnoreCase) ? "Dyanari TEST — disposable profile" : "Dyanari — Local Companion"; Width = 1240; Height = 860; MinimumSize = new Size(820, 620); StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(16, 16, 20); Controls.Add(status);
         Shown += async (_, _) => await StartAsync();
         FormClosing += async (_, e) =>
@@ -83,7 +86,7 @@ internal sealed class CompanionWindow : Form
             catch { }
             finally { shutdownComplete = true; Close(); }
         };
-        FormClosed += (_, _) => { closing = true; view.Dispose(); try { if (server is { HasExited: false }) server.Kill(true); } catch { } server?.Dispose(); try { if (ownedOllama is { HasExited: false }) ownedOllama.Kill(true); } catch { } ownedOllama?.Dispose(); };
+        FormClosed += (_, _) => { closing = true; researchBrowser?.Dispose(); view.Dispose(); try { if (server is { HasExited: false }) server.Kill(true); } catch { } server?.Dispose(); try { if (ownedOllama is { HasExited: false }) ownedOllama.Kill(true); } catch { } ownedOllama?.Dispose(); };
     }
     private async Task StartAsync()
     {
@@ -150,6 +153,42 @@ internal sealed class CompanionWindow : Form
             {
                 if (!IsLocal(e.Source)) return;
                 var command = e.TryGetWebMessageAsString();
+                if (command.StartsWith("open-source:"))
+                {
+                    try
+                    {
+                        using var data = JsonDocument.Parse(command["open-source:".Length..]);
+                        if (data.RootElement.GetProperty("token").GetString() != apiToken) return;
+                        var address = data.RootElement.GetProperty("url").GetString();
+                        if (!Uri.TryCreate(address, UriKind.Absolute, out var source) || source.Scheme != "https" || !source.IsDefaultPort || source.UserInfo.Length != 0 || !source.Host.Contains('.') || IPAddress.TryParse(source.Host, out var parsedAddress) || source.Host.EndsWith(".local")) return;
+                        Process.Start(new ProcessStartInfo(source.AbsoluteUri) { UseShellExecute = true });
+                    }
+                    catch { }
+                    return;
+                }
+                if (command.StartsWith("save-mesh:"))
+                {
+                    string? temporary = null;
+                    try
+                    {
+                        var parts = command.Split(':');
+                        if (parts.Length != 3 || parts[1] != apiToken || !Guid.TryParse(parts[2], out var meshId)) throw new IOException("Invalid model save request");
+                        using var save = new SaveFileDialog { Title = "Save Dyanari 3D model as", FileName = "Dyanari-model", Filter = "STL geometry, millimetres (*.stl)|*.stl|Wavefront OBJ geometry, millimetres (*.obj)|*.obj|PLY geometry, millimetres (*.ply)|*.ply|Original GLB scene (*.glb)|*.glb", AddExtension = true, OverwritePrompt = true };
+                        if (save.ShowDialog(this) != DialogResult.OK) return;
+                        var format = new[] { "stl", "obj", "ply", "glb" }[save.FilterIndex - 1];
+                        if (!Path.GetExtension(save.FileName).Equals("." + format, StringComparison.OrdinalIgnoreCase)) throw new IOException("The filename extension must match the selected format");
+                        using var download = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+                        using var request = new HttpRequestMessage(HttpMethod.Get, origin + "/api/mesh?id=" + meshId + "&format=" + format); request.Headers.Add("X-Dyanari-Token", apiToken);
+                        using var response = await download.SendAsync(request, HttpCompletionOption.ResponseHeadersRead); response.EnsureSuccessStatusCode();
+                        temporary = save.FileName + "." + Guid.NewGuid().ToString("N") + ".partial";
+                        await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true)) { await response.Content.CopyToAsync(output); }
+                        File.Move(temporary, save.FileName, true); temporary = null;
+                        view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "mesh-saved", format }));
+                    }
+                    catch (Exception ex) { view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "mesh-save-error", error = ex.Message })); }
+                    finally { if (temporary != null) try { File.Delete(temporary); } catch { } }
+                    return;
+                }
                 if (command.StartsWith("capture-screen:"))
                 {
                     try
@@ -170,6 +209,7 @@ internal sealed class CompanionWindow : Form
                 if (picker.ShowDialog(this) == DialogResult.OK) view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "workspace-picked", path = picker.SelectedPath }));
             };
             view.CoreWebView2.Navigate(origin);
+            researchBrowser = new ResearchBrowser(this, origin, apiToken);
             status.Visible = false;
         }
         catch (Exception e) { if (!closing) { status.Text = "Dyanari could not start\n\n" + e.Message; status.Font = new Font("Segoe UI", 12); status.BringToFront(); } }

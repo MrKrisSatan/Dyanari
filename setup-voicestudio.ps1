@@ -1,4 +1,4 @@
-param([string]$Cache='', [switch]$DownloadVoiceModel, [switch]$AcceptNoncommercialTerms, [string]$Data='')
+param([string]$Cache='', [switch]$DownloadVoiceModel, [switch]$AcceptNoncommercialTerms, [string]$Data='', [switch]$EnableCuda)
 $ErrorActionPreference='Stop'
 # Independent upstream service, pinned source and locked dependencies. No global Python/package changes.
 $root=Join-Path $env:USERPROFILE '.dyanari\voicestudio'
@@ -19,6 +19,18 @@ Expand-Archive -LiteralPath $uvZip -DestinationPath (Join-Path $root 'uv') -Forc
 $uv=Join-Path $root 'uv\uv.exe'
 & $uv --system-certs sync --locked --no-group cuda --group cpu --project $source
 if($LASTEXITCODE){throw 'VoiceStudio dependency setup failed'}
+if($EnableCuda){
+ $previousEnvironment=$env:UV_PROJECT_ENVIRONMENT
+ try{
+  $env:UV_PROJECT_ENVIRONMENT=Join-Path $source '.venv-cuda'
+  & $uv --system-certs sync --frozen --no-default-groups --group cuda --project $source
+  if($LASTEXITCODE){throw 'NVIDIA voice dependency setup failed'}
+  & (Join-Path $source '.venv-cuda\Scripts\python.exe') -c "import torch; assert torch.cuda.is_available(), 'CUDA device is not available'; print(torch.cuda.get_device_name(0))"
+  if($LASTEXITCODE){throw 'NVIDIA voice runtime check failed'}
+  @{device='cuda';torch='2.8.0+cu128';sourceRevision='5bfbda36886e8555317eb2f5816784ccad28f42c'}|ConvertTo-Json|Set-Content (Join-Path $root 'GPU.json')
+ }finally{$env:UV_PROJECT_ENVIRONMENT=$previousEnvironment}
+}
+
 $bunZip=Fetch 'https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-windows-x64.zip' 'bun.zip' 'ce4c17497b2f29712a99d3d53f028de28cd42e3bacb8589599e7f000e49b6405'
 Expand-Archive -LiteralPath $bunZip -DestinationPath (Join-Path $root 'bun') -Force
 $bun=Join-Path $root 'bun\bun-windows-x64\bun.exe'

@@ -50,3 +50,7 @@ Image implementation: qwen-image.mjs (catalog/runtime/graph), image-inspiration.
 
 
 0.10.1: run `node --test installer-download.test.mjs` for actual Windows PowerShell download/hidden-child regressions. The second-machine report distinguishes scripted installation, runtime inference and remaining clean-OS/uninstall requirements. Certificate verification remains enabled throughout optional setup.
+
+0.11: `npm ci --ignore-scripts` installs integrity-locked document parsers. Run documents.test.mjs, documents-http-integration.mjs and document-smoke.mjs (also from the extracted payload), plus chat-features.test.mjs. mesh-export.mjs streams OBJ/PLY from inspected STL; GLB remains the original source scene. chat-features.mjs inventories existing panels and exposes discovery/open-panel tools without granting permissions. Main chat mounts the existing controls, including approvals, in an adjacent expandable panel. New profiles prefer spoken replies, but voice/runtime permissions remain explicit; saved mute and restore behavior are tested.
+
+0.11 research: run research.test.mjs and research-http-integration.mjs; actual background-browser and local-model checks are separate. Preserve the portable per-directory mutex and TEST title so disposable instances cannot be confused with the installed user application. GPU voice uses a separate frozen .venv-cuda and opt-in setup flag; auto uses it only when installed. See JARVIS-REVIEW.md for reviewed future work.

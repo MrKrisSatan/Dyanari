@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id),
   token = document.querySelector("meta[name=token]").content;
+let chatSending=false,replyVoiceSuppressed=false;
 let state,
   memoryMatches = null,
   privateHistory = [],
@@ -88,6 +89,10 @@ async function refresh(history = false) {
   $('meshEnabled').checked=!!s.meshEnabled;
   $("spontaneousImages").checked=!!s.spontaneousImages;$("imageIdeaTheme").value=s.imageIdeaTheme;$("imageIdeaMinutes").value=s.imageIdeaMinutes;$("imageDailyLimit").value=s.imageDailyLimit;
   $("speakReplies").checked = !!s.speakReplies;
+  $('chatVoice').checked=!!s.speakReplies;
+  $('retainResearch').checked=!!s.retainResearch;
+  $('studioDevice').value=s.voiceStudioDevice||'auto';
+  $('chatVoiceStatus').textContent=!s.speakReplies?'Voice disabled':s.speechProvider==='voicestudio'&&s.voiceStudioEnabled&&s.voiceStudioProfile?'British Velvet / saved identity':'Voice setup needed — open Voice, vision, images & 3D';
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
   $('studioEnabled').checked=s.voiceStudioEnabled;$('speechProvider').value=s.speechProvider;$('studioPort').value=s.voiceStudioPort;$('studioSpeed').value=s.voiceStudioSpeed;
   renderComputerState(s, state.actions);
@@ -275,6 +280,7 @@ function renderMemories() {
 document.querySelectorAll("[data-tab]").forEach(
   (b) =>
     (b.onclick = () => {
+      closeChatFeature();
       document
         .querySelectorAll(".page")
         .forEach((p) => p.classList.toggle("hidden", p.id !== b.dataset.tab));
@@ -291,7 +297,7 @@ $("toolsEnabled").onchange = () =>
   safe(() => updateSettings({ tools: $("toolsEnabled").checked }));
 $("stop").onclick = () =>
   safe(async () => {
-    $("speechAudio").pause();
+    stopSpeech();
     await api("stop", {});
     notice("Cancellation requested");
   });
@@ -300,6 +306,8 @@ $("chatForm").onsubmit = (e) => {
   safe(async () => {
     const text = $("input").value.trim();
     if (!text) return;
+    stopSpeech();
+    replyVoiceSuppressed=false;
     const priv = $("private").checked;
     if (priv !== lastPrivate) {
       $("messages").replaceChildren();
@@ -309,7 +317,9 @@ $("chatForm").onsubmit = (e) => {
     message("user", text);
     $("input").value = "";
     $("send").disabled = true;
+    chatSending=true;
     const output = message("assistant", "");
+    let replySpeech=null;
     try {
       const r = await fetch("/api/chat", {
         method: "POST",
@@ -319,7 +329,7 @@ $("chatForm").onsubmit = (e) => {
         },
         body: JSON.stringify({ text, private: priv, history: privateHistory }),
       });
-      if (!r.ok) throw Error((await r.json()).error);
+      if (!r.ok) {if(!$('input').value)$('input').value=text;throw Error((await r.json()).error);}
       const reader = r.body.getReader(),
         decoder = new TextDecoder();
       let pending = "";
@@ -333,13 +343,18 @@ $("chatForm").onsubmit = (e) => {
           pending = pending.slice(i + 1);
           if (!line) continue;
           const v = JSON.parse(line);
-          if (v.token) output.textContent += v.token;
+          if(v.status){notice(v.status);$('chatJobStatus').textContent=v.status;}
+          if(v.tool_start){replySpeech?.cancel();replySpeech=null;}
+          if (v.token){output.textContent += v.token;if(state.settings.speakReplies&&!replyVoiceSuppressed){if(!replySpeech)replySpeech=startReplySpeech(priv);replySpeech.push(v.token)}}
           if (v.tool)
             notice(
               "Tool " + v.tool + ": " + JSON.stringify(v.result).slice(0, 180),
             );
           if(v.tool==="generate_image"&&v.result?.id)await showChatArtwork(v.result.id,output.parentElement);
-          if(v.tool==='generate_stl'&&v.result?.id)meshDownloadButtons(v.result.id,output.parentElement);
+          if(v.tool==='generate_stl'&&v.result?.id){if(v.result.image_id)await showChatArtwork(v.result.image_id,output.parentElement);meshDownloadButtons(v.result.id,output.parentElement);const inspection=document.createElement('p');inspection.textContent=v.result.warning+' Watertight geometry is not a printability certificate.';output.parentElement.append(inspection)}
+          if(v.result?.open_feature)openChatFeature(v.result.open_feature);
+          if(v.tool==='research_web'&&v.result?.sources)showResearchSources(v.result,output.parentElement);
+          if(v.result?.pending){const feature=v.tool.includes('linked_project')?'linked-projects':v.tool.includes('delete')?'activity':v.tool.includes('control')||v.tool.includes('application')?'actions':'development';card(output.parentElement,'Approval required before this action can run.',[['Review in chat',()=>openChatFeature(feature)]]);openChatFeature(feature);}
           if (v.error) throw Error(v.error);
           $("messages").scrollTop = $("messages").scrollHeight;
         }
@@ -350,21 +365,19 @@ $("chatForm").onsubmit = (e) => {
           { role: "assistant", content: output.textContent },
         );
       notice("Ready");
-      if (state.settings.speakReplies && output.textContent)
-        try {
-          await speak(output.textContent.slice(0, 6000));
-        } catch (e) {
-          notice("Reply ready. Audio: " + e.message);
-        }
+      if(replySpeech)replySpeech.finish();
     } catch (e) {
+      replySpeech?.cancel();
       output.textContent += "\n[" + e.message + "]";
     } finally {
       $("send").disabled = false;
+      chatSending=false;
     }
   });
 };
 $("private").onchange = () =>
   safe(async () => {
+    stopSpeech();
     privateHistory = [];
     lastPrivate = $("private").checked;
     $("messages").replaceChildren();
@@ -485,18 +498,31 @@ $("download").onclick = () =>
   });
 safe(() => refresh(true));
 document.querySelector("[data-tab=chat]").classList.add("active");
-let audioUrl;
-async function speak(text) {
-  const r = await fetch("/api/speak", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Dyanari-Token": token },
-    body: JSON.stringify({ text, voice: $("voiceSelect").value, private: $("private")?.checked || false }),
-  });
-  if (!r.ok) throw Error((await r.json()).error);
-  if (audioUrl) URL.revokeObjectURL(audioUrl);
-  audioUrl = URL.createObjectURL(await r.blob());
-  $("speechAudio").src = audioUrl;
-  await $("speechAudio").play();
+let audioUrl, speechController, activeReplySpeech;
+function stopSpeech(){activeReplySpeech?.cancel();activeReplySpeech=null;speechController?.abort();speechController=null;$('speechAudio').pause();$('chatVoiceStatus').textContent=state?.settings.speakReplies?'Voice stopped':'Voice disabled';}
+async function speak(text,{privateMode=$('private').checked,automatic=false}={}) {
+  stopSpeech();if(!text.trim())return;
+  const controller=new AbortController();speechController=controller;
+  try {
+    let remaining=text;
+    while(remaining.length){
+      if(controller.signal.aborted)throw new DOMException('Speech stopped','AbortError');
+      let end=Math.min(240,remaining.length);if(end<remaining.length){const boundary=Math.max(remaining.lastIndexOf('. ',end),remaining.lastIndexOf('\n',end),remaining.lastIndexOf(' ',end));if(boundary>60)end=boundary+1;}
+      const chunk=remaining.slice(0,end);remaining=remaining.slice(end);
+      $('chatVoiceStatus').textContent='Preparing British Velvet speech…';
+      const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json','X-Dyanari-Token':token},signal:controller.signal,body:JSON.stringify({text:chunk,voice:$('voiceSelect').value,private:privateMode,automatic})});
+      if(!r.ok)throw Error((await r.json()).error);
+      const blob=await r.blob();if(controller.signal.aborted)throw new DOMException('Speech stopped','AbortError');
+      if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(blob);const audio=$('speechAudio');audio.src=audioUrl;
+      await new Promise((resolve,reject)=>{
+        const clear=()=>{audio.removeEventListener('ended',done);audio.removeEventListener('error',failed);controller.signal.removeEventListener('abort',cancel)};
+        const done=()=>{clear();resolve()},failed=()=>{clear();reject(Error('Audio playback failed'))},cancel=()=>{clear();audio.pause();reject(new DOMException('Speech stopped','AbortError'))};
+        audio.addEventListener('ended',done,{once:true});audio.addEventListener('error',failed,{once:true});controller.signal.addEventListener('abort',cancel,{once:true});
+        if(controller.signal.aborted)return cancel();audio.play().then(()=>{$('chatVoiceStatus').textContent='Speaking…'}).catch(e=>{clear();reject(e)});
+      });
+    }
+    $('chatVoiceStatus').textContent='Voice ready';
+  }finally{if(speechController===controller)speechController=null}
 }
 $("microphoneEnabled").onchange = () =>
   safe(async () => {
@@ -533,8 +559,7 @@ $("speakLast").onclick = () =>
     ),
   );
 $("stopSpeech").onclick = () => {
-  $("speechAudio").pause();
-  safe(() => api("stop", {}));
+  replyVoiceSuppressed=true;stopSpeech();
 };
 $("speechAudio").onplay = () =>
   document.querySelector(".orb").classList.add("speaking");
@@ -697,7 +722,7 @@ $("creativeEnabled").onchange = () =>
 $("voiceSelect").onchange = () =>
   safe(() => updateSettings({ voice: $("voiceSelect").value }));
 $("speakReplies").onchange = () =>
-  safe(() => updateSettings({ speakReplies: $("speakReplies").checked }));
+  safe(async () => {stopSpeech();await updateSettings({ speakReplies: $("speakReplies").checked })});
 $("startCreative").onclick = () =>
   safe(async () => {
     const result = await api("creative/start", {});
@@ -1024,13 +1049,13 @@ $('studioRefresh').onclick=()=>safe(studioCatalog);
 $('studioStop').onclick=()=>safe(async()=>{await api('studio/stop',{});await studioStatus()});
 $('studioDesign').onclick=()=>safe(async()=>{notice('Creating Dyanari’s saved British voice identity…');await api('studio/design',{approved:true});await refresh();await studioCatalog();notice('Identity saved. Preview it to render its permanent voice sample.')});
 $('studioSample').onclick=()=>safe(async()=>{notice('Rendering saved identity; the first CPU render can take several minutes.');const r=await fetch('/api/studio/sample',{method:'POST',headers:{'Content-Type':'application/json','X-Dyanari-Token':token},body:'{}'});if(!r.ok)throw Error((await r.json()).error);if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(await r.blob());$('speechAudio').src=audioUrl;await $('speechAudio').play()});
-$('studioSave').onclick=()=>safe(()=>updateSettings({voiceStudioProfile:$('studioProfile').value,voiceStudioEngine:$('studioEngine').value,voiceStudioSpeed:Number($('studioSpeed').value),speechProvider:$('speechProvider').value}));
+$('studioSave').onclick=()=>safe(()=>updateSettings({voiceStudioDevice:$('studioDevice').value,voiceStudioProfile:$('studioProfile').value,voiceStudioEngine:$('studioEngine').value,voiceStudioSpeed:Number($('studioSpeed').value),speechProvider:$('speechProvider').value}));
 $('studioOpen').onclick=()=>safe(async()=>{const v=await studioStatus();if(!v.ready)throw Error('Start VoiceStudio first');await api('studio/open',{})});
 $('studioTranscribe').onclick=()=>safe(async()=>{const f=$('studioAudio').files[0];if(!f||f.size>650000)throw Error('Choose a WAV under 650 KB');const bytes=new Uint8Array(await f.arrayBuffer());let str='';for(const b of bytes)str+=String.fromCharCode(b);const v=await api('studio/transcribe',{audio:btoa(str)});$('studioTranscript').value=v.text||''});
 
 
 
-$('studioInstall').onclick=()=>safe(async()=>{await api('studio/install',{approved:true,acceptTerms:$('studioTerms').checked});notice('Pinned VoiceStudio setup started. Refresh status to check progress; details are in voicestudio/setup.log.');await studioStatus()});
+$('studioInstall').onclick=()=>safe(async()=>{await api('studio/install',{approved:true,acceptTerms:$('studioTerms').checked,enableCuda:$('studioCuda').checked});notice('Pinned VoiceStudio setup started. Refresh status to check progress; details are in voicestudio/setup.log.');await studioStatus()});
 
 function renderImageRuntime(v){
  const q=v.qwen,hw=q.hardware;$('imageHardware').textContent=`${hw.ram} GB RAM · ${hw.gpu} · ${hw.vram} GB VRAM · recommended: ${hw.recommended||'skip / no suitable automatic tier'}. ${q.installing?'Installing; see image-setup.log.':q.lastError||''}`;
@@ -1046,7 +1071,25 @@ async function showChatArtwork(id,parent){if(!/^[a-f0-9-]{36}$/.test(id))return;
 setInterval(()=>{if(state?.settings.spontaneousImages)safe(async()=>{const v=await api('creative/state');renderImageRuntime(v);if(v.artworks[0]?.id&&!document.querySelector(`[data-artwork="${v.artworks[0].id}"]`))await refreshCreative()})},15000);
 
 let meshState;
-function meshDownloadButtons(id,parent){const preview=document.createElement('button');preview.textContent='Preview 3D';preview.onclick=()=>safe(()=>window.previewDyanariMesh(id,parent,token));parent.append(preview);for(const format of ['stl','glb']){const button=document.createElement('button');button.textContent='Download '+format.toUpperCase();button.onclick=()=>safe(async()=>{const r=await fetch('/api/mesh?id='+encodeURIComponent(id)+'&format='+format,{headers:{'X-Dyanari-Token':token}});if(!r.ok)throw Error('Mesh download failed');const url=URL.createObjectURL(await r.blob()),link=document.createElement('a');link.href=url;link.download='Dyanari-'+id+'.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000)});parent.append(button)}}
+function meshDownloadButtons(id,parent){
+  if(!/^[a-f0-9-]{36}$/.test(id))return;
+  const row=document.createElement('div');row.className='meshSave';
+  const preview=document.createElement('button');preview.textContent='Preview 3D';preview.onclick=()=>safe(()=>window.previewDyanariMesh(id,parent,token));row.append(preview);
+  const formats=document.createElement('select');formats.setAttribute('aria-label','3D export format');
+  for(const [value,label] of [['stl','STL · mm geometry'],['obj','OBJ · mm geometry'],['ply','PLY · mm geometry'],['glb','GLB · original scene']]){const option=document.createElement('option');option.value=value;option.textContent=label;formats.append(option)}
+  const button=document.createElement('button');button.textContent='Save As…';
+  if(!window.chrome?.webview)row.append(formats);
+  button.onclick=()=>safe(async()=>{
+    if(window.chrome?.webview){window.chrome.webview.postMessage('save-mesh:'+token+':'+id);return}
+    const format=formats.value;
+    let handle;if(window.showSaveFilePicker)try{handle=await window.showSaveFilePicker({suggestedName:'Dyanari-model.'+format,types:[{description:format.toUpperCase()+' model',accept:{'application/octet-stream':['.'+format]}}]})}catch(e){if(e.name==='AbortError')return;throw e}
+    const r=await fetch('/api/mesh?id='+encodeURIComponent(id)+'&format='+format,{headers:{'X-Dyanari-Token':token}});if(!r.ok)throw Error('Mesh export failed');
+    if(handle){const writable=await handle.createWritable();try{await r.body.pipeTo(writable)}catch(e){await writable.abort().catch(()=>{});throw e}}
+    else{const url=URL.createObjectURL(await r.blob()),link=document.createElement('a');link.href=url;link.download='Dyanari-'+id+'.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}
+    notice('Model exported as '+format.toUpperCase());
+  });row.append(button);parent.append(row);
+}
+
 function meshLicence(){const b=meshState?.bundles.find(b=>b.id===$('meshBackend').value);$('meshLicense').replaceChildren();if(!b)return;const a=document.createElement('a');a.href=b.licenseUrl;a.target='_blank';a.rel='noreferrer';a.textContent=b.license;$('meshLicense').append(a);$('meshTerms').checked=false;$('meshTerritory').checked=false;}
 async function refreshMesh(){const v=await api('3d/state');meshState=v;const previous=$('meshBackend').value;$('meshHardware').textContent=`${v.hardware.ram} GB RAM · ${v.hardware.gpu} · ${v.hardware.vram.toFixed(1)} GB VRAM. Recommended: ${v.hardware.recommended||'no suitable default'}.`;$('meshBackend').replaceChildren();for(const b of v.bundles){const o=document.createElement('option');o.value=b.id;o.textContent=`${b.name} · ${(b.bytes/1e9).toFixed(2)} GB weights · ${b.installed?'installed':'not installed'}${b.suitable?'':' · below hardware guidance'}`;$('meshBackend').append(o)}$('meshBackend').value=v.bundles.some(b=>b.id===previous)?previous:v.hardware.recommended||v.bundles[0].id;if(!previous)meshLicence();$('meshStatus').textContent=v.job?`${v.job.status} · ${v.job.progress}%`:v.setup?'Installing '+v.setup.bundle:v.lastSetup? (v.lastSetup.ok?'Setup completed.':v.lastSetup.error||'Setup failed; see modly-setup.log'):'Ready for an installed backend. 3D generation requires both studio switches.';$('meshLibrary').replaceChildren();for(const mesh of v.meshes){const r=mesh.report;const div=document.createElement('div');div.className='card';const text=document.createElement('p');text.textContent=`${mesh.backend} · ${mesh.prompt||mesh.source} · ${r.triangles.toLocaleString()} triangles · ${r.extents_mm.map(n=>n.toFixed(1)).join(' × ')} mm · ${r.watertight?'watertight topology; inspect in slicer':'not watertight; needs repair'}`;div.append(text);meshDownloadButtons(mesh.id,div);$('meshLibrary').append(div)}}
 $('meshEnabled').onchange=()=>safe(()=>updateSettings({meshEnabled:$('meshEnabled').checked}));
@@ -1055,3 +1098,42 @@ $('installMesh').onclick=()=>safe(async()=>{await api('3d/install',{bundle:$('me
 $('stopMesh').onclick=()=>safe(async()=>{await api('3d/stop',{});await refreshMesh()});
 $('generateMesh').onclick=()=>safe(async()=>{const a={backend:$('meshBackend').value,size_mm:Number($('meshSize').value),quality:$('meshQuality').value},kind=$('meshInputKind').value;if(kind==='upload'){const f=$('meshImage').files[0];if(!f||f.size>20*1024*1024)throw Error('Select an image up to 20 MB');a.image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(f)})}else a[{prompt:'prompt',artwork:'image_id',workspace:'image_path'}[kind]]=$('meshPrompt').value;$('meshStatus').textContent='Generating locally; this can take several minutes.';$('generateMesh').disabled=true;try{const result=await api('3d/generate',a);notice(result.warning)}finally{$('generateMesh').disabled=false;await refreshMesh()}});
 setInterval(()=>{if(state?.settings.meshEnabled)safe(refreshMesh)},5000);
+
+let activeChatFeature=null,featurePlaceholder=null;
+function closeChatFeature(){
+  if(activeChatFeature){activeChatFeature.classList.add('hidden');featurePlaceholder.replaceWith(activeChatFeature);activeChatFeature=null;featurePlaceholder=null}
+  $('chatFeaturePanel').open=false;
+}
+function openChatFeature(id){
+  const page=document.getElementById(id);if(!page||id==='chat'||!page.classList.contains('page'))throw Error('Unknown feature panel');
+  closeChatFeature();featurePlaceholder=document.createComment('feature home');page.replaceWith(featurePlaceholder);activeChatFeature=page;
+  document.querySelectorAll('main > .page').forEach(p=>p.classList.toggle('hidden',p.id!=='chat'));
+  $('chatFeatureBody').append(page);page.classList.remove('hidden');$('chatFeaturePanel').open=true;$('chatFeatureSelect').value=id;$('title').textContent='Conversation';
+  safe(()=>refresh());if(id==='research')safe(refreshResearch);if(id==='services'){safe(refreshMesh);safe(refreshCreative);safe(studioCatalog)}
+}
+$('chatOpenFeatures').onclick=()=>{$('chatFeaturePanel').open=!$('chatFeaturePanel').open};
+$('chatFeatureOpen').onclick=()=>safe(()=>openChatFeature($('chatFeatureSelect').value));
+$('chatFeatureClose').onclick=closeChatFeature;
+$('chatOpen3d').onclick=()=>{openChatFeature('services');$('meshEnabled').scrollIntoView({block:'start'})};
+$('chatVoice').onchange=()=>safe(async()=>{stopSpeech();await updateSettings({speakReplies:$('chatVoice').checked});if($('chatVoice').checked&&(!state.settings.voiceStudioEnabled||!state.settings.voiceStudioProfile))openChatFeature('services')});
+$('chatStopSpeech').onclick=()=>{replyVoiceSuppressed=true;stopSpeech()};
+window.chrome?.webview?.addEventListener('message',e=>{if(e.data.type==='mesh-saved')notice('Model saved as '+e.data.format.toUpperCase());if(e.data.type==='mesh-save-error')notice(e.data.error)});
+safe(async()=>{const result=await api('tool',{name:'list_capabilities',arguments:{}});for(const feature of result.features){const option=document.createElement('option');option.value=feature.id;option.textContent=feature.name;option.title=feature.description;$('chatFeatureSelect').append(option)}});
+
+setInterval(()=>safe(async()=>{const health=await api('health');$('send').disabled=chatSending||health.busy;const job=meshState?.job;$('chatJobStatus').textContent=job?`3D workflow: ${job.status}${job.progress?' · '+job.progress+'%':''}. This can take several minutes; Stop all tasks cancels it.`:health.busy?'Dyanari is working on a request. Your next message stays in the composer.':''}),3000);
+
+function showResearchSources(result,parent){
+  const box=document.createElement('div');box.className='card';const label=document.createElement('p');label.textContent=(result.saved?'Research saved for later recall':'Research not saved')+' · '+(result.date||'');box.append(label);
+  for(const source of result.sources||[]){const a=document.createElement('a');a.textContent=source.title+' — '+new URL(source.url).hostname;a.href=source.url;a.target='_blank';a.rel='noreferrer';a.onclick=e=>{if(window.chrome?.webview){e.preventDefault();window.chrome.webview.postMessage('open-source:'+JSON.stringify({token,url:source.url}))}};box.append(a,document.createElement('br'))}parent.append(box);
+}
+async function refreshResearch(){const result=await api('research/state');$('researchStatus').textContent=result.job?result.job.status+' — '+result.job.query:'No active research';$('researchNotes').replaceChildren();for(const note of result.notes)card($('researchNotes'),note.query+' · '+note.stamp+(note.project?' · '+note.project:''),[['Show sources',async()=>{const saved=await api('tool',{name:'recall_research',arguments:{query:note.query}});const exact=saved.research.find(r=>r.id===note.id);if(exact)showResearchSources({...exact,saved:true},$('researchNotes'))}],['Forget',async()=>{if(confirm('Forget this saved research and its source excerpts?')){await api('research/forget',{id:note.id,approved:true});await refreshResearch()}}]])}
+$('retainResearch').onchange=()=>safe(()=>updateSettings({retainResearch:$('retainResearch').checked}));$('refreshResearch').onclick=()=>safe(refreshResearch);
+
+function startReplySpeech(privateMode){
+  stopSpeech();
+  const queue=new DyanariReplySpeech({
+    synthesize:async(text,signal)=>{if(!state.settings.speakReplies)throw new DOMException('Muted','AbortError');$('chatVoiceStatus').textContent='Preparing speech…';const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json','X-Dyanari-Token':token},signal,body:JSON.stringify({text,private:privateMode,automatic:true})});if(!r.ok)throw Error((await r.json()).error);return r.blob()},
+    play:async(blob,signal)=>{if(signal.aborted)throw new DOMException('Stopped','AbortError');if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(blob);const audio=$('speechAudio');audio.src=audioUrl;await new Promise((resolve,reject)=>{const clear=()=>{audio.removeEventListener('ended',done);audio.removeEventListener('error',failed);signal.removeEventListener('abort',cancel)};const done=()=>{clear();resolve()},failed=()=>{clear();reject(Error('Audio playback failed'))},cancel=()=>{clear();audio.pause();reject(new DOMException('Stopped','AbortError'))};audio.addEventListener('ended',done,{once:true});audio.addEventListener('error',failed,{once:true});signal.addEventListener('abort',cancel,{once:true});audio.play().then(()=>{$('chatVoiceStatus').textContent='Speaking…'}).catch(e=>{clear();reject(e)})})},
+    stop:()=>{$('speechAudio').pause()},onError:e=>notice('Voice: '+e.message)
+  });activeReplySpeech=queue;queue.done.then(()=>{if(activeReplySpeech===queue){activeReplySpeech=null;$('chatVoiceStatus').textContent='Voice ready'}});return queue;
+}

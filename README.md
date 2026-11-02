@@ -4,7 +4,7 @@ A local Windows AI companion and practical assistant, powered by Ollama. Convers
 
 ## Download
 
-[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.10.1). Select **DyanariSetup-0.10.1.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
+[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.11.0). Select **DyanariSetup-0.11.0.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
 
 Setup detects RAM and NVIDIA VRAM, recommends a Hugging Face abliterated GGUF model, and installs Dyanari, Ollama and WebView2 when needed. Model downloads are optional and checked against pinned revisions, sizes and SHA-256 hashes. Internet is required during setup; inference runs locally afterward.
 
@@ -17,10 +17,13 @@ Start with [TODO.md](TODO.md), [AGENTS.md](AGENTS.md) and [DEVELOPMENT.md](DEVEL
 ## Capabilities
 
 - Local chat, editable personality and model-independent persistent memory.
+- All existing feature controls accessible alongside chat, visible approval controls, and opt-out British Velvet speech after setup.
+- One-request prompt → image → 3D generation, with Preview and Save As for STL, OBJ, PLY or original GLB.
 - Persistent project tasks that continue after approved operations, retain intent/results and require selected verification.
 - Memory categories/sources, reviewable suggestions, related-wording checks and reversible consolidation.
 - Linked local MCP projects, including a pinned REA installation, tool discovery and approved calls.
 - Scoped text/code file reading, searching, creation, editing and recovery.
+- Local PDF, DOCX and XLSX reading with source references, bounded continuation and no macro/formula execution. See [document reading](DOCUMENTS.md).
 - Approved Git branches, commits, clones, fast-forward pulls and non-force pushes.
 - GitHub repositories, issues and pull requests, with exact write previews.
 - Saved Node/npm/dotnet/Python build and test recipes with real exit codes, bounded logs and process-tree cancellation.
@@ -35,7 +38,7 @@ Internet, file changes and computer control have separate permissions. Optional 
 
 Early preview; the full project brief is not complete. Arbitrary shell commands, general browser/computer automation, automatic conflict repair, structured Office editing and mobile access are not implemented. Approved build/test recipes execute real code with the Windows account permissions and are not sandboxed. Small local models may struggle with complex coding and long tasks. Community “abliterated” descriptions do not guarantee behavior or quality.
 
-Current second-machine checks: 117 service-independent Node tests (including two new installer regressions), seven Python installer tests, and six authenticated HTTP acceptance scripts. See [0.10.1 setup fixes](RELEASE-0.10.1.md) and [second-machine acceptance](SECOND-MACHINE-ACCEPTANCE.md) for real runtime evidence and remaining limits. Real inference and packaged self-test counts/hashes are recorded separately in [BUILD-INFO.json](BUILD-INFO.json). Earlier releases also validated local vision/speech, GitHub authentication/clone/pull and isolated application-only staging with the verified Ollama archive. Fresh-machine installation still requires acceptance testing. See [3D integration](RELEASE-0.10.md) and [installer details](INSTALLER.md).
+Document reading adds nine tests and authenticated HTTP acceptance. The current source suite has 141 service-independent Node tests. See [0.11 research and main chat](RELEASE-0.11.md), [0.10.1 setup fixes](RELEASE-0.10.1.md) and [second-machine acceptance](SECOND-MACHINE-ACCEPTANCE.md) for real runtime evidence and remaining limits. Real inference and packaged self-test counts/hashes are recorded separately in [BUILD-INFO.json](BUILD-INFO.json). Earlier releases also validated local vision/speech, GitHub authentication/clone/pull and isolated application-only staging with the verified Ollama archive. Fresh-machine installation still requires acceptance testing. See [3D integration](RELEASE-0.10.md) and [installer details](INSTALLER.md).
 
 ## Build
 
@@ -46,9 +49,9 @@ On Windows x64, install .NET 10 SDK and place an official Node.js 24 Windows x64
 .\build-installer.ps1 -Dotnet dotnet
 ```
 
-The installer embeds the fresh desktop build and writes `DyanariSetup-0.10.1.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
+The installer embeds the fresh desktop build and writes `DyanariSetup-0.11.0.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
 
-For source development, `npm start` starts the loopback backend; configure local Ollama separately. `npm test` runs core tests. `npm run test:services` needs optional local services. Read integration-script prerequisites before running them; they perform real operations in isolated test workspaces.
+For source development, run `npm ci --ignore-scripts` first. `npm start` starts the loopback backend; configure local Ollama separately. `npm test` runs core tests. `npm run test:services` needs optional local services. Read integration-script prerequisites before running them; they perform real operations in isolated test workspaces.
 
 Chat, memory databases, weights, credentials, runtime binaries and caches are excluded from Git. Historical reports describe an optional development-machine configuration, not a portable dependency bundle.
 

@@ -6,6 +6,9 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { FileEngine, fileDefinitions } from "./files.mjs";
+import {readDocument, documentDefinitions} from './documents.mjs';
+import {chatFeature, chatFeatureDefinitions} from './chat-features.mjs';
+import {ResearchEngine, researchDefinitions} from './research.mjs';
 import { Scheduler, schedulerDefinitions } from "./scheduler.mjs";
 import { CreativeEngine, creativeDefinitions } from "./creative.mjs";
 import { ResourceManager } from "./resources.mjs";
@@ -24,6 +27,7 @@ const applicationHome =
   process.env.DYANARI_HOME || path.dirname(fileURLToPath(import.meta.url));
 export const defaults = {
   internet: false,
+  retainResearch: true,
   microphone: false,
   tools: false,
   read: true,
@@ -58,9 +62,10 @@ export const defaults = {
   voiceStudioPort: 3900,
   voiceStudioEngine: 'omnivoice',
   voiceStudioProfile: '',
+  voiceStudioDevice: 'auto',
   voiceStudioSpeed: 0.94,
   speechProvider: 'windows',
-  speakReplies: false,
+  speakReplies: true,
   voice: "Microsoft Hazel Desktop",
   quietStart: 22,
   quietEnd: 8,
@@ -102,6 +107,7 @@ export class Core {
       this.db.prepare("SELECT value FROM settings WHERE id=1").get()?.value ||
       "";
     this.files = new FileEngine(this);
+    this.research = new ResearchEngine(this);
     this.scheduler = new Scheduler(this);
     this.resources = new ResourceManager(this.dir);
     this.creative = new CreativeEngine(this);
@@ -119,6 +125,9 @@ export class Core {
   }
   toolAvailable(name) {
     const s = this.settings;
+    if (chatFeatureDefinitions.some(([n])=>n===name)) return true;
+    if (name === 'research_web') return s.internet;
+    if (name === 'recall_research') return true;
     if (linkedProjectDefinitions.some(([n])=>n===name)) return this.linkedProjects.allowed();
     if (developmentDefinitions.some(([n]) => n === name)) return this.development.allowed(name);
     if (["search_web", "fetch_page"].includes(name)) return s.internet;
@@ -148,6 +157,7 @@ export class Core {
       [
         "list_files",
         "read_file",
+        "read_document",
         "search_files",
         "search_text",
         "file_metadata",
@@ -199,6 +209,7 @@ export class Core {
       "screen",
       "creative",
       "speakReplies",
+      "retainResearch",
       "runTools",
       "computer",
       "gitAccess",
@@ -417,7 +428,7 @@ export class Core {
       ),
     };
   }
-  async web(url, signal) {
+  async web(url, signal, {inspectRedirect=false,maxBytes=1000000}={}) {
     if (!this.settings.internet) throw Error("Internet Access is OFF");
     const u = new URL(url);
     if (
@@ -463,6 +474,10 @@ export class Core {
           timeout: 15000,
         },
         (r) => {
+          if(inspectRedirect&&[301,302,303,307,308].includes(r.statusCode)&&typeof r.headers.location==='string'){
+            r.resume();if(!this.settings.internet)return reject(Error('Internet disabled'));
+            return resolve({url:u.href,redirect:new URL(r.headers.location,u).href});
+          }
           if (r.statusCode !== 200) {
             r.resume();
             reject(
@@ -479,7 +494,7 @@ export class Core {
             n = 0;
           r.on("data", (b) => {
             n += b.length;
-            if (n > 1000000) {
+            if (n > Math.min(8000000,maxBytes)) {
               req.destroy(Error("Page too large"));
               return;
             }
@@ -494,7 +509,9 @@ export class Core {
                 .toString("utf8")
                 .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
                 .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+                .replace(/<(nav|header|footer|aside|form)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
                 .replace(/<[^>]*>/g, " ")
+                .replace(/&(?:amp|lt|gt|quot|apos|nbsp);/g, e=>({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&apos;':"'",'&nbsp;':' '}[e]))
                 .replace(/\s+/g, " ")
                 .slice(0, 18000),
             });
@@ -506,11 +523,16 @@ export class Core {
       req.on("error", reject);
     });
   }
-  async tool(name, a, signal) {
+  async tool(name, a, signal, context={}) {
     if (!a || typeof a !== "object" || Array.isArray(a))
       throw Error("Invalid tool arguments");
-    this.log("tool", name + " " + JSON.stringify(a));
+    this.log("tool", name + (context.privateMode && name==='research_web' ? ' (private query omitted)' : " " + JSON.stringify(a)));
+    if (name === 'research_web') return this.research.research(a.query,signal,context);
+    if (name === 'recall_research') return {research:this.research.recall(a.query)};
+    if (chatFeatureDefinitions.some(([n])=>n===name)) return chatFeature(name,a,this,toolDefinitions);
+    if (name === 'read_document') return readDocument(this, a, signal);
     if(name==='list_3d_models'){this.modly.enabled();return this.modly.state()}
+    if((name==='generate_image'||name==='generate_stl')&&this.voiceStudio.active?.automatic){this.voiceStudio.cancel();for(let i=0;i<100&&this.voiceStudio.active;i++)await new Promise(r=>setTimeout(r,50));}
     if(name==='generate_stl'){const release=this.resources.acquire('3D generation');try{return await this.modly.generate(a,signal)}finally{release()}}
     if(linkedProjectDefinitions.some(([n])=>n===name))return this.linkedProjects.execute(name,a,signal);
     if (developmentDefinitions.some(([n]) => n === name)) return this.development.execute(name, a, signal);
@@ -607,10 +629,13 @@ export function publicIP(ip) {
   );
 }
 export const toolDefinitions = [
+  ...researchDefinitions,
+  ...chatFeatureDefinitions,
   ...linkedProjectDefinitions,
   ...developmentDefinitions,
   ...actionDefinitions,
   ...fileDefinitions,
+  ...documentDefinitions,
   ...schedulerDefinitions,
   ...creativeDefinitions,
   ...modlyDefinitions,
@@ -656,7 +681,7 @@ export const toolDefinitions = [
         Object.entries(props).map(([k, type]) => [k, type === 'array' ? {type,items:{type:'string'}} : { type }]),
       ),
       required: Object.keys(props).filter(
-        (k) => name!=='generate_stl' && !(name === "write_file" && k === "expected_sha256") && !(name === "generate_image" && k !== "prompt"),
+        (k) => name!=='generate_stl' && !(name === 'read_document' && k !== 'path') && !(name === "write_file" && k === "expected_sha256") && !(name === "generate_image" && k !== "prompt"),
       ),
       additionalProperties: false,
     },
