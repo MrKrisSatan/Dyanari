@@ -1,9 +1,9 @@
 {
-  "version": "0.8.0",
-  "sha256": "6AA210B95CF8601EEDD8AD3040D632FE64D5B5B59AFB422489D0F2CF15477C8C",
-  "bytes": 158100635,
-  "sourceCommit": "3c1d0037879c0125cd7eeae1b8388764147567f8",
-  "automatedTests": 102,
+  "version": "0.9.0",
+  "sha256": "6C6305941B78EC41DC47F1447339A030404A5CCA73C477141D12B73239990BA9",
+  "bytes": 158142107,
+  "sourceCommit": "7b44c3c",
+  "automatedTests": 119,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -15,13 +15,13 @@
   "notepadWorkflow": "passed: actual approved note creation, Notepad launch and UI Automation text readback",
   "guiLaunchPipeRegression": "passed",
   "installer": {
-    "selfTests": 13,
+    "selfTests": 33,
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.8.0.exe",
-    "sha256": "8BF1ACC86EED00873513561557F8D727D0781E89834DF8F5C8AD8C96D034DDAE",
-    "bytes": 209795604
+    "file": "DyanariSetup-0.9.0.exe",
+    "sha256": "090A8707A68F0A987BB14F8CD2B8C86DE115A91F65267CF37155958C54B6498B",
+    "bytes": 209959956
   },
   "development": {
     "actualProjectTests": 7,
@@ -66,13 +66,24 @@
     "version": "0.5.7",
     "realTranscription": "passed: Whisper base correctly transcribed generated preview, microphone never activated",
     "actualInstallation": "passed: isolated CPU Python dependencies, full studio frozen-lockfile web build, pinned TTS and Whisper weights",
-    "nativeShell": "shell loaded; voice controls, saved identity and 0.92 speed verified in browser; native click automation geometry unavailable",
+    "nativeShell": "Verified studio controls, speed 0.94 and default OFF permissions in browser",
     "unitTests": 11,
     "privateTerms": "public installers leave model consent unset",
-    "realSpeech": "passed: actual OmniVoice speech, validated WAV and identical identity sample after service restart",
-    "voice": "Velvet British: adult female, low pitch, whisper, fixed saved identity, 0.92 speed",
+    "realSpeech": "Passed: new saved British Velvet identity and actual preview WAV",
+    "voice": "British Velvet: fully voiced mature female British contralto, seed 424243, speed 0.94; whisper instruction removed",
     "gpuVoice": "not validated; managed runtime uses CPU",
     "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
   },
-  "desktopFile": "Dyanari-0.8.0.exe"
+  "desktopFile": "Dyanari-0.9.0.exe",
+  "qwenImages": {
+    "httpAcceptance": "passed",
+    "bundles": 9,
+    "higherTiers": "not hardware validated",
+    "spontaneous": "passed: actual Qwen3 4B idea to Q4 image, 150 seconds, quota recorded, chat memory unchanged",
+    "realQ2": "passed: 512x512, 25 steps",
+    "realQ4": "passed: 512x512, 25 steps, 148 seconds, RTX 3060 8 GB / 16 GB RAM",
+    "unitTests": 17,
+    "ui": "verified hardware selection, optional consent and default OFF controls",
+    "cpu": "startup passed; full CPU render unverified"
+  }
 }

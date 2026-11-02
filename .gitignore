@@ -13,3 +13,10 @@ action-helper/obj/
 installer/bin/
 installer/obj/
 installer/publish/
+
+*.exe
+
+
+.venv/
+__pycache__/
+*.pyc

@@ -25,6 +25,7 @@ const schedulerTimer = setInterval(() => {
   }
 }, 1000);
 schedulerTimer.unref();
+const imageIdeaTimer=setInterval(()=>{core.creative.inspiration.tick({isBusy:()=>busy||core.modelBusy||core.agentTasks.running}).catch(e=>core.log('creative',e.message))},30000);imageIdeaTimer.unref();
 async function local(route, body, signal) {
   const r = await fetch(ollama + route, {
     method: body ? "POST" : "GET",
@@ -59,8 +60,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/health")
       return send(res, {
         app: "dyanari",
-        busy:busy||core.agentTasks.running,
-        version: "0.8.0",
+        busy:busy||core.modelBusy||core.agentTasks.running,
+        version: "0.9.0",
         desktop: process.env.DYANARI_DESKTOP === "1",
       });
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -106,7 +107,7 @@ const server = http.createServer(async (req, res) => {
         models,
         running,
         health,
-        busy:busy||core.agentTasks.running,
+        busy:busy||core.modelBusy||core.agentTasks.running,
         operations: core.files.history(),
         pendingActions: [...core.files.pending.values()].filter(
           (v) => v.expires > Date.now(),
@@ -229,16 +230,18 @@ const server = http.createServer(async (req, res) => {
         core.controllers.delete(controller);
       }
     }
+    if(url.pathname==='/api/creative/install')return send(res,await core.creative.qwen.install(b));
+    if(url.pathname==='/api/creative/stop'){core.creative.inspiration.pause();core.creative.cancel();core.creative.qwen.stop();return send(res,{stoppedOwnedService:true})}
     if (url.pathname === "/api/creative/start")
       return send(res, await core.creative.start());
     if (url.pathname === "/api/creative/generate") {
-      if (busy||core.agentTasks.running) throw Error("Another model task is active");
+      if (busy||core.modelBusy||core.agentTasks.running) throw Error("Another model task is active");
       const release = core.resources.acquire("image generation");
       busy = true;
       core.modelBusy=true;
       const c = new AbortController();
       core.controllers.add(c);
-      const timer = setTimeout(() => c.abort(), 600000);
+      const timer = setTimeout(() => c.abort(), 1800000);
       try {
         return send(res, await core.creative.generate(b, c.signal));
       } finally {
@@ -272,7 +275,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, { acknowledged: true });
     }
     if (url.pathname === "/api/vision") {
-      if (busy||core.agentTasks.running) throw Error("Another model task is active");
+      if (busy||core.modelBusy||core.agentTasks.running) throw Error("Another model task is active");
       const release = core.resources.acquire("vision");
       busy = true;
       core.modelBusy=true;
@@ -311,6 +314,9 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/settings") return send(res, core.save(b));
     if (url.pathname === "/api/stop") {
       core.controllers.forEach((c) => c.abort());
+      if(b.shutdown!==true)core.creative.inspiration.pause();
+      core.creative.cancel();
+      core.creative.qwen.stop();
       core.voiceStudio.stop();
       core.actions.cancel();
       core.development.cancel();
@@ -436,6 +442,7 @@ const server = http.createServer(async (req, res) => {
         proactive: false,
         screen: false,
         creative: false,
+        spontaneousImages: false,
         computer: false,
         runTools: false,
         gitAccess: false,
@@ -480,7 +487,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (url.pathname === "/api/chat") {
-      if (busy||core.agentTasks.running) throw Error("Another conversation or project task is active");
+      if (busy||core.modelBusy||core.agentTasks.running) throw Error("Another conversation or project task is active");
       if (typeof b.text !== "string" || !b.text.trim() || b.text.length > 20000)
         throw Error("Message must contain 1–20000 characters");
       const release = core.resources.acquire("conversation");
@@ -488,7 +495,7 @@ const server = http.createServer(async (req, res) => {
       core.modelBusy=true;
       const c = new AbortController();
       core.controllers.add(c);
-      const timeout = setTimeout(() => c.abort(), 180000);
+      let timeout = setTimeout(() => c.abort(), 180000);
       res.on("close", () => c.abort());
       res.writeHead(200, {
         "Content-Type": "application/x-ndjson",
@@ -610,7 +617,8 @@ const server = http.createServer(async (req, res) => {
               const args = call.function.arguments;
               if (!validToolArguments(def,args))
                 throw Error("Tool schema validation failed");
-              result = await core.tool(name, args, c.signal);
+              if(name==='generate_image'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),1800000)}
+              try{result = await core.tool(name, args, c.signal)}finally{if(name==='generate_image'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),180000)}}
             } catch (e) {
               result = { error: e.message };
             }

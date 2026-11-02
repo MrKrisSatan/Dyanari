@@ -85,6 +85,7 @@ async function refresh(history = false) {
   $("screenEnabled").checked = !!s.screen;
   $("screenLabel").textContent = s.screen ? "ON" : "OFF";
   $("creativeEnabled").checked = !!s.creative;
+  $("spontaneousImages").checked=!!s.spontaneousImages;$("imageIdeaTheme").value=s.imageIdeaTheme;$("imageIdeaMinutes").value=s.imageIdeaMinutes;$("imageDailyLimit").value=s.imageDailyLimit;
   $("speakReplies").checked = !!s.speakReplies;
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
   $('studioEnabled').checked=s.voiceStudioEnabled;$('speechProvider').value=s.speechProvider;$('studioPort').value=s.voiceStudioPort;$('studioSpeed').value=s.voiceStudioSpeed;
@@ -336,6 +337,7 @@ $("chatForm").onsubmit = (e) => {
             notice(
               "Tool " + v.tool + ": " + JSON.stringify(v.result).slice(0, 180),
             );
+          if(v.tool==="generate_image"&&v.result?.id)await showChatArtwork(v.result.id,output.parentElement);
           if (v.error) throw Error(v.error);
           $("messages").scrollTop = $("messages").scrollHeight;
         }
@@ -708,7 +710,8 @@ async function refreshCreative() {
     ? v.job
       ? "Generating: " + v.job.status
       : "Local ComfyUI connected"
-    : "Local ComfyUI is not running";
+    : v.qwen.installed?"Qwen bundle installed; starts automatically when requested":"Local ComfyUI is not running";
+  renderImageRuntime(v);
   const selected = $("checkpoint").value;
   $("checkpoint").replaceChildren();
   for (const name of v.checkpoints) {
@@ -728,13 +731,13 @@ async function refreshCreative() {
     const url = URL.createObjectURL(await r.blob());
     artworkUrls.add(url);
     const div = document.createElement("div");
-    div.className = "card";
+    div.className = "card";div.dataset.artwork=art.id;
     const img = document.createElement("img");
     img.src = url;
     img.alt = art.prompt;
     img.className = "generatedImage";
     const caption = document.createElement("p");
-    caption.textContent = art.prompt;
+    caption.textContent = (art.origin==="spontaneous"?"Dyanari inspiration · ":"")+art.prompt+(art.model?" · "+art.model:"");
     const a = document.createElement("a");
     a.href = url;
     a.download = "Dyanari-" + art.id + ".png";
@@ -1026,3 +1029,16 @@ $('studioTranscribe').onclick=()=>safe(async()=>{const f=$('studioAudio').files[
 
 
 $('studioInstall').onclick=()=>safe(async()=>{await api('studio/install',{approved:true,acceptTerms:$('studioTerms').checked});notice('Pinned VoiceStudio setup started. Refresh status to check progress; details are in voicestudio/setup.log.');await studioStatus()});
+
+function renderImageRuntime(v){
+ const q=v.qwen,hw=q.hardware;$('imageHardware').textContent=`${hw.ram} GB RAM · ${hw.gpu} · ${hw.vram} GB VRAM · recommended: ${hw.recommended||'skip / no suitable automatic tier'}. ${q.installing?'Installing; see image-setup.log.':q.lastError||''}`;
+ const selected=$('imageBundle').value;$('imageBundle').replaceChildren();for(const b of q.catalog){const o=document.createElement('option');o.value=b.id;o.textContent=`${b.name} · ${(b.bytes/1024**3).toFixed(1)} GiB · ${b.ram} GB RAM / ${b.vram} GB VRAM`;$('imageBundle').append(o)}$('imageBundle').value=selected||q.bundle?.id||hw.recommended||q.catalog[0].id;
+ const i=v.inspiration;$('imageInspirationState').textContent=i.paused?'Paused by Stop. Save / resume to enable again.':i.active?'Dyanari is considering or rendering an image.':state?.settings?.spontaneousImages?(state?.settings?.proactive&&state?.settings?.creative?'Waiting for an idle, non-quiet interval and available budget.':'Enable Creative Studio and Proactive Mode too.'):'Spontaneous generation is OFF.';
+ $('imageInspirationHistory').replaceChildren();for(const r of i.records.slice(0,5)){const p=document.createElement('p');p.textContent=`${new Date(r.stamp).toLocaleString()} · ${r.status} · ${r.reason||r.prompt}`;$('imageInspirationHistory').append(p)}
+}
+$('installImages').onclick=()=>safe(async()=>{await api('creative/install',{approved:true,bundle:$('imageBundle').value,acceptResearchTerms:$('imageTerms').checked,overrideHardware:$('imageHardwareOverride').checked});notice('Verified image setup started. Refresh for status; details are in image-setup.log.');await refreshCreative()});
+$('stopImages').onclick=()=>safe(async()=>{await api('creative/stop',{});await refreshCreative();notice('Images stopped; spontaneous generation remains paused until you resume it.')});
+$('saveImageInspiration').onclick=()=>safe(async()=>{await updateSettings({spontaneousImages:$('spontaneousImages').checked,imageIdeaTheme:$('imageIdeaTheme').value,imageIdeaMinutes:Number($('imageIdeaMinutes').value),imageDailyLimit:Number($('imageDailyLimit').value)});await refreshCreative()});
+const chatArtworkUrls=new Set();
+async function showChatArtwork(id,parent){if(!/^[a-f0-9-]{36}$/.test(id))return;const r=await fetch('/api/artwork?id='+encodeURIComponent(id),{headers:{'X-Dyanari-Token':token}});if(!r.ok)return;const url=URL.createObjectURL(await r.blob()),img=document.createElement('img');chatArtworkUrls.add(url);img.src=url;img.alt='Image generated locally by Dyanari';img.className='generatedImage';parent.append(img)}
+setInterval(()=>{if(state?.settings.spontaneousImages)safe(async()=>{const v=await api('creative/state');renderImageRuntime(v);if(v.artworks[0]?.id&&!document.querySelector(`[data-artwork="${v.artworks[0].id}"]`))await refreshCreative()})},15000);

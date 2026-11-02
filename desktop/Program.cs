@@ -20,7 +20,7 @@ internal static class Program
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "Dyanari", MessageBoxButtons.OK, MessageBoxIcon.Error);
         if (args.Contains("--self-test"))
         {
-            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")) && File.Exists(Path.Combine(location,"linked-projects.mjs")) && File.Exists(Path.Combine(location,"memory-ledger.mjs")) && File.Exists(Path.Combine(location,"agent-tasks.mjs")) && File.Exists(Path.Combine(location,"voicestudio.mjs")) && File.Exists(Path.Combine(location,"voicestudio-launch.py")) && File.Exists(Path.Combine(location,"setup-voicestudio.ps1")), payload = location, version = "0.8.0" })); }
+            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")) && File.Exists(Path.Combine(location,"linked-projects.mjs")) && File.Exists(Path.Combine(location,"memory-ledger.mjs")) && File.Exists(Path.Combine(location,"agent-tasks.mjs")) && File.Exists(Path.Combine(location,"voicestudio.mjs")) && File.Exists(Path.Combine(location,"voicestudio-launch.py")) && File.Exists(Path.Combine(location,"setup-voicestudio.ps1")) && File.Exists(Path.Combine(location,"qwen-image.mjs")) && File.Exists(Path.Combine(location,"image-inspiration.mjs")) && File.Exists(Path.Combine(location,"image-catalog.json")) && File.Exists(Path.Combine(location,"image-runtime/uv.lock")) && File.Exists(Path.Combine(location,"image-runtime/dyanari_qwen_node.py")), payload = location, version = "0.9.0" })); }
             catch (Exception e) { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = false, error = e.Message })); Environment.ExitCode = 1; }
             return;
         }
@@ -76,7 +76,7 @@ internal sealed class CompanionWindow : Form
             try
             {
                 using var stopClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-                using var request = new HttpRequestMessage(HttpMethod.Post, origin + "/api/stop") { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
+                using var request = new HttpRequestMessage(HttpMethod.Post, origin + "/api/stop") { Content = new StringContent("{\"shutdown\":true}", System.Text.Encoding.UTF8, "application/json") };
                 request.Headers.Add("X-Dyanari-Token", apiToken); await stopClient.SendAsync(request);
                 for (int i = 0; i < 30; i++) { try { var health = await stopClient.GetStringAsync(origin + "/api/health"); using var state = JsonDocument.Parse(health); if (!state.RootElement.GetProperty("busy").GetBoolean()) break; } catch { break; } await Task.Delay(100); }
             }

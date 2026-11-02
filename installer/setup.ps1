@@ -2,6 +2,8 @@ param([switch]$SelfTest,[string]$Report,[string]$StageTestRoot,[string]$RuntimeA
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing,System.IO.Compression.FileSystem
 $catalog=Get-Content -LiteralPath "$PSScriptRoot\models.json" -Raw | ConvertFrom-Json
+$imageCatalog=Get-Content -LiteralPath "$PSScriptRoot\image-catalog.json" -Raw|ConvertFrom-Json
+function Recommend-Image([double]$ram,[double]$vram){$fit=@($imageCatalog.bundles|Where-Object {!$_.community -and $ram+0.5 -ge $_.ram -and $vram -ge $_.vram});if($fit.Count){return $fit[-1].id};return ''}
 function Recommend([double]$ram,[double]$vram) {
  if($ram -ge 24 -and $vram -ge 12){return 2}
  if($ram -ge 12 -and $vram -ge 6){return 1}
@@ -20,7 +22,9 @@ if($SelfTest){
  try{Safe-Target $PSScriptRoot '..\escape' | Out-Null;$checks+=$false}catch{$checks+=$true}
  try{Check-Hash "$PSScriptRoot\models.json" ('0'*64);$checks+=$false}catch{$checks+=$true}
  $checks+=(Test-Path -LiteralPath "$PSScriptRoot\Dyanari.exe")
- foreach($extra in @('setup-voicestudio.ps1','VOICESTUDIO.md')){$checks+=(Test-Path -LiteralPath (Join-Path $PSScriptRoot $extra))}
+ $checks+=((Recommend-Image 16 8) -eq 'q4');$checks+=((Recommend-Image 24 8) -eq 'q4');$checks+=((Recommend-Image 32 12) -eq 'q5');$checks+=((Recommend-Image 64 24) -eq 'q8');$checks+=((Recommend-Image 8 0) -eq '')
+ foreach($bundle in $imageCatalog.bundles){$checks+=($bundle.files.Count -ge 3 -and @($bundle.files|Where-Object {$_.sha256 -notmatch '^[a-f0-9]{64}$' -or $_.revision -notmatch '^[a-f0-9]{40}$' -or $_.bytes -le 0}).Count -eq 0)}
+ foreach($extra in @('QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){$checks+=(Test-Path -LiteralPath (Join-Path $PSScriptRoot $extra))}
  @{passed=($checks -notcontains $false);checks=$checks.Count;catalog=$catalog;appHash=(Get-FileHash "$PSScriptRoot\Dyanari.exe").Hash} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Report
  if($checks -contains $false){exit 1};exit 0
 }
@@ -38,7 +42,7 @@ $vram=0; $gpu='CPU fallback (no NVIDIA GPU detected)'
 try { $nv=Get-Command nvidia-smi.exe -ErrorAction Stop; $rows=@(& $nv.Source --query-gpu=name,memory.total --format=csv,noheader,nounits); foreach($row in $rows){$parts=$row -split ','; $gb=[double]$parts[-1].Trim()/1024; if($gb -gt $vram){$vram=$gb;$gpu=$parts[0].Trim()}} }catch{}
 $recommended=Recommend $ram $vram
 $form=New-Object Windows.Forms.Form
-$form.Text='Dyanari Setup';$form.Size=New-Object Drawing.Size(740,570);$form.StartPosition='CenterScreen';$form.FormBorderStyle='FixedDialog';$form.MaximizeBox=$false
+$form.Text='Dyanari Setup';$form.Size=New-Object Drawing.Size(740,([math]::Min(790,[Windows.Forms.Screen]::PrimaryScreen.WorkingArea.Height-30)));$form.AutoScroll=$true;$form.StartPosition='CenterScreen';$form.FormBorderStyle='FixedDialog';$form.MaximizeBox=$false
 $info=New-Object Windows.Forms.Label;$info.SetBounds(22,15,685,125);$info.Text="DYANARI - LOCAL COMPANION`r`n`r`n$cpu`r`n$ram GB RAM | $gpu | $([math]::Round($vram,1)) GB NVIDIA VRAM`r`nPer-user installation: $install`r`nMemory: $data (shared by every model; preserved on reinstall/uninstall)";$form.Controls.Add($info)
 $models=New-Object Windows.Forms.ComboBox;$models.DropDownStyle='DropDownList';$models.SetBounds(22,147,680,28)
 foreach($model in $catalog){[void]$models.Items.Add("$($model.name) - $([math]::Round($model.bytes/1GB,2)) GiB" )};[void]$models.Items.Add('Install application only (choose a model later)');$models.SelectedIndex=$recommended;$form.Controls.Add($models)
@@ -48,10 +52,19 @@ $update={
  if($models.SelectedIndex -lt $catalog.Count){$m=$catalog[$models.SelectedIndex];$detail.Text="Recommended tier: $($catalog[$recommended].name)`r`nSelected: https://huggingface.co/$($m.repo)`r`nQ4_K_M | revision $($m.revision)`r`nCommunity abliterated model: refusal reduction is not guaranteed. Review the model card and license before installing. Tool permissions remain under your control.`r`nDownloads: model above + Ollama runtime (1.49 GiB), and WebView2 if missing. Allow at least $([math]::Ceiling(6+3*$m.bytes/1GB)) GiB free for temporary files and model import. CPU-only inference is slower."}
  else{$detail.Text='Installs Dyanari, local Ollama runtime (1.49 GiB download), and WebView2 if needed. No chat model will be downloaded. Run this installer again to add one. Existing memory and settings are preserved.'}
 };$models.add_SelectedIndexChanged($update);& $update
-$progress=New-Object Windows.Forms.ProgressBar;$progress.SetBounds(22,347,680,22);$form.Controls.Add($progress)
-$status=New-Object Windows.Forms.Label;$status.SetBounds(22,380,680,70);$status.Text='Windows 10/11 x64. Internet is needed during setup. No admin access required.';$form.Controls.Add($status)
-$button=New-Object Windows.Forms.Button;$button.Text='Install';$button.SetBounds(480,470,105,32);$form.Controls.Add($button)
-$cancel=New-Object Windows.Forms.Button;$cancel.Text='Close';$cancel.SetBounds(597,470,105,32);$form.Controls.Add($cancel)
+$imageCheck=New-Object Windows.Forms.CheckBox;$imageCheck.Text='Also install local Qwen Image 2.1 (optional multi-GB download)';$imageCheck.SetBounds(22,340,680,24);$form.Controls.Add($imageCheck)
+$imageModels=New-Object Windows.Forms.ComboBox;$imageModels.DropDownStyle='DropDownList';$imageModels.SetBounds(22,371,680,28);[void]$imageModels.Items.Add('Skip image setup / choose later')
+$imageRecommended=Recommend-Image $ram $vram;$imageModels.SelectedIndex=0
+for($i=0;$i -lt $imageCatalog.bundles.Count;$i++){ $b=$imageCatalog.bundles[$i];[void]$imageModels.Items.Add($b.name+' — '+[math]::Round($b.bytes/1GB,1)+' GiB');if($b.id -eq $imageRecommended){$imageModels.SelectedIndex=$i+1} };$form.Controls.Add($imageModels)
+$imageDetail=New-Object Windows.Forms.TextBox;$imageDetail.Multiline=$true;$imageDetail.ReadOnly=$true;$imageDetail.ScrollBars='Vertical';$imageDetail.SetBounds(22,407,680,80);$form.Controls.Add($imageDetail)
+$imageUpdate={if($imageModels.SelectedIndex -gt 0){$b=$imageCatalog.bundles[$imageModels.SelectedIndex-1];$imageDetail.Text='Conservative minimum: '+$b.ram+' GB RAM / '+$b.vram+' GB NVIDIA VRAM. Recommended: '+$imageRecommended+'. Includes diffusion, text encoder, VAE and a separate pinned ComfyUI/GGUF runtime. '+$(if($b.encoderCommunity){'Compact text encoder is community Heretic Q4 + matching vision projector. '}else{'Official INT8 text encoder. '})+'Community uncensored labels are author claims, not guarantees. All files are hash verified. CPU fallback can be very slow.'}else{$imageDetail.Text='No suitable automatic image tier for this hardware, or image setup skipped. Existing image models and memory are preserved.'}};$imageModels.add_SelectedIndexChanged($imageUpdate);& $imageUpdate
+$imageTerms=New-Object Windows.Forms.CheckBox;$imageTerms.Text='I accept the Qwen Research License: research/evaluation only unless separately licensed.';$imageTerms.SetBounds(22,495,680,34);$form.Controls.Add($imageTerms)
+$termsLink=New-Object Windows.Forms.LinkLabel;$termsLink.Text='Review Qwen model terms';$termsLink.SetBounds(22,532,250,20);$termsLink.add_LinkClicked({Start-Process 'https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE'});$form.Controls.Add($termsLink)
+$imageOverride=New-Object Windows.Forms.CheckBox;$imageOverride.Text='Try hardware-limited image tier (CPU / slower offload; may not fit)';$imageOverride.SetBounds(280,532,425,24);$form.Controls.Add($imageOverride)
+$progress=New-Object Windows.Forms.ProgressBar;$progress.SetBounds(22,570,680,22);$form.Controls.Add($progress)
+$status=New-Object Windows.Forms.Label;$status.SetBounds(22,604,680,62);$status.Text='Windows 10/11 x64. Internet is needed during setup. No admin access required.';$form.Controls.Add($status)
+$button=New-Object Windows.Forms.Button;$button.Text='Install';$button.SetBounds(480,690,105,32);$form.Controls.Add($button)
+$cancel=New-Object Windows.Forms.Button;$cancel.Text='Close';$cancel.SetBounds(597,690,105,32);$form.Controls.Add($cancel)
 $script:running=$false;$script:cancelled=$false
 $cancel.add_Click({if($script:running){$script:cancelled=$true;$cancel.Enabled=$false}else{$form.Close()}})
 $form.add_FormClosing({param($sender,$event) if($script:running){$script:cancelled=$true;$event.Cancel=$true}})
@@ -75,16 +88,19 @@ function Run($exe,$arguments,$environment=@{}) {
  $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=$exe;$psi.Arguments=$arguments;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
  foreach($key in $environment.Keys){$psi.EnvironmentVariables[$key]=$environment[$key]}
  $p=[Diagnostics.Process]::Start($psi)
- try{while(!$p.HasExited){try{Pump}catch{try{$p.Kill()}catch{};throw};Start-Sleep -Milliseconds 100};if($p.ExitCode -ne 0){throw "$exe exited with code $($p.ExitCode)"}}finally{$p.Dispose()}
+ try{while(!$p.HasExited){try{Pump}catch{try{$killInfo=New-Object Diagnostics.ProcessStartInfo;$killInfo.FileName='taskkill.exe';$killInfo.Arguments="/PID $($p.Id) /T /F";$killInfo.UseShellExecute=$false;$killInfo.CreateNoWindow=$true;$killer=[Diagnostics.Process]::Start($killInfo);$killer.WaitForExit();$killer.Dispose()}catch{};throw};Start-Sleep -Milliseconds 100};if($p.ExitCode -ne 0){throw "$exe exited with code $($p.ExitCode)"}}finally{$p.Dispose()}
 }
 Add-Type -AssemblyName System.Net.Http
 $installAction={
- $script:running=$true;$script:cancelled=$false;$button.Enabled=$false;$models.Enabled=$false;$cancel.Text='Cancel'
+ $script:running=$true;$script:cancelled=$false;$button.Enabled=$false;$models.Enabled=$false;$cancel.Text='Cancel';foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride)){$control.Enabled=$false}
  try {
   if([Environment]::OSVersion.Version.Build -lt 19041){throw 'Windows 10 build 19041 or newer is required.'}
   if(!$StageTestRoot -and (Get-Process Dyanari -ErrorAction SilentlyContinue)){throw 'Close Dyanari before installing or updating.'}
+  $imageChoice=$imageModels.SelectedIndex
+  if($imageCheck.Checked){if($imageChoice -le 0){throw 'Select an image bundle or turn off optional image setup'};if(!$imageTerms.Checked){throw 'Review and accept Qwen model terms before image setup'};$ib=$imageCatalog.bundles[$imageChoice-1];if(($ram+0.5 -lt $ib.ram -or $vram -lt $ib.vram) -and !$imageOverride.Checked){throw 'Selected image bundle exceeds hardware guidance. Choose the recommended tier, skip, or explicitly override.'}}
   $choice=$models.SelectedIndex;$required=6;if($choice -lt $catalog.Count){$required=[math]::Ceiling(6+3*$catalog[$choice].bytes/1GB)}
   if($choice -lt $catalog.Count -and $ram -lt 7.5){throw 'At least 8 GB RAM is recommended. Choose application-only setup on this machine.'}
+  if($imageCheck.Checked){$required+=[math]::Ceiling(8+$ib.bytes/1GB)}
   if((New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($install))).AvailableFreeSpace -lt $required*1GB){throw "At least $required GiB free disk space is required."}
   foreach($dir in @($install,$data,$cache)){[void][IO.Directory]::CreateDirectory($dir)}
   $ollamaZip=Join-Path $cache 'ollama-v0.40.13.zip'
@@ -116,7 +132,7 @@ $installAction={
   Copy-Item -LiteralPath $payload -Destination "$install\Dyanari.exe.new" -Force
   Check-Hash "$install\Dyanari.exe.new" (Get-FileHash $payload).Hash
   Move-Item -LiteralPath "$install\Dyanari.exe.new" -Destination "$install\Dyanari.exe" -Force
-  foreach($extra in @('setup-voicestudio.ps1','VOICESTUDIO.md')){ $extraSource=Join-Path $PSScriptRoot $extra;if(!(Test-Path -LiteralPath $extraSource)){$extraSource=Join-Path (Split-Path $PSScriptRoot -Parent) $extra};Copy-Item -LiteralPath $extraSource -Destination (Join-Path $install $extra) -Force }
+  foreach($extra in @('QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){ $extraSource=Join-Path $PSScriptRoot $extra;if(!(Test-Path -LiteralPath $extraSource)){$extraSource=Join-Path (Split-Path $PSScriptRoot -Parent) $extra};[void][IO.Directory]::CreateDirectory((Split-Path (Join-Path $install $extra) -Parent));Copy-Item -LiteralPath $extraSource -Destination (Join-Path $install $extra) -Force }
   $config=@{installed=$true;dataPath=$data}
   if(Test-Path "$install\installation.json"){$old=Get-Content "$install\installation.json" -Raw|ConvertFrom-Json;if($old.defaultModel){$config.defaultModel=$old.defaultModel}}
   $config|ConvertTo-Json|Set-Content "$install\installation.json" -Encoding UTF8
@@ -136,6 +152,7 @@ $installAction={
    }finally{if(!$service.HasExited){$service.Kill()};$service.Dispose()}
   }
   $config|ConvertTo-Json|Set-Content "$install\installation.json" -Encoding UTF8
+  if($imageCheck.Checked){$psImage=Join-Path $PSHOME 'powershell.exe';$imageArgs='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '+[char]34+(Join-Path $install 'setup-images.ps1')+[char]34+' -BundleId '+$ib.id+' -AcceptResearchTerms';if($vram -eq 0){$imageArgs+=' -Cpu'};Run $psImage $imageArgs}
   if(!$StageTestRoot){
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari.lnk'));$shortcut.TargetPath="$install\Dyanari.exe";$shortcut.WorkingDirectory=$install;$shortcut.Save()
@@ -145,11 +162,11 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.8.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.9.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true
- }catch{$status.Text=$_.Exception.Message;if($StageTestRoot){throw};[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Dyanari Setup')|Out-Null;$button.Enabled=$true;$models.Enabled=$true}
+ }catch{$status.Text=$_.Exception.Message;if($StageTestRoot){throw};[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Dyanari Setup')|Out-Null;$button.Enabled=$true;$models.Enabled=$true;foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride)){$control.Enabled=$true}}
  finally{$script:running=$false;$cancel.Enabled=$true;$cancel.Text='Close';if($script:complete){$button.Enabled=$false;if(!$StageTestRoot){Start-Process -FilePath "$install\Dyanari.exe"}}}
 }
 $button.add_Click($installAction)

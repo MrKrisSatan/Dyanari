@@ -11,6 +11,7 @@ import { ResourceManager } from "./resources.mjs";
 import { DevelopmentEngine, developmentDefinitions } from "./development.mjs";
 import { LinkedProjectEngine, linkedProjectDefinitions } from './linked-projects.mjs';
 import { MemoryLedger } from './memory-ledger.mjs';
+import {validateImageSettings} from './qwen-image.mjs';
 import { AgentTasks } from './agent-tasks.mjs';
 import {
   ActionEngine,
@@ -31,6 +32,10 @@ export const defaults = {
   proactive: false,
   screen: false,
   creative: false,
+  spontaneousImages: false,
+  imageIdeaTheme: 'Quiet landscapes, astronomy, imaginative places and original art',
+  imageIdeaMinutes: 60,
+  imageDailyLimit: 1,
   runTools: false,
   computer: false,
   gitAccess: false,
@@ -51,7 +56,7 @@ export const defaults = {
   voiceStudioPort: 3900,
   voiceStudioEngine: 'omnivoice',
   voiceStudioProfile: '',
-  voiceStudioSpeed: 0.92,
+  voiceStudioSpeed: 0.94,
   speechProvider: 'windows',
   speakReplies: false,
   voice: "Microsoft Hazel Desktop",
@@ -168,6 +173,7 @@ export class Core {
       this.memoryLedger?.merges.clear();
       this.agentTasks?.pauseAll('Settings changed in another instance');
       this.voiceStudio?.reconcile();
+      this.creative?.qwen.reconcile();
     }
     return this._settings;
   }
@@ -211,6 +217,7 @@ export class Core {
     )
       throw Error("Unsupported autonomous workflow");
     validateStudio(s);
+    validateImageSettings(s);
     if (typeof s.voice !== "string" || s.voice.length > 200)
       throw Error("Invalid voice name");
     for (const k of ["quietStart", "quietEnd"])
@@ -281,6 +288,8 @@ export class Core {
     this.development?.cancel();
     this.settings = s;
     this.voiceStudio?.reconcile();
+    this.creative?.qwen.reconcile();
+    this.creative?.inspiration.settingsChanged(v);
     this.db
       .prepare("INSERT OR REPLACE INTO settings VALUES(1,?)")
       .run(JSON.stringify(s));
@@ -637,7 +646,7 @@ export const toolDefinitions = [
         Object.entries(props).map(([k, type]) => [k, type === 'array' ? {type,items:{type:'string'}} : { type }]),
       ),
       required: Object.keys(props).filter(
-        (k) => !(name === "write_file" && k === "expected_sha256"),
+        (k) => !(name === "write_file" && k === "expected_sha256") && !(name === "generate_image" && k !== "prompt"),
       ),
       additionalProperties: false,
     },
