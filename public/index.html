@@ -477,6 +477,24 @@
           </p>
           <div id="artworkLibrary"></div>
         </div>
+        <div class="card"><h3>3D Studio · images and prompts to STL</h3>
+          <p>Based on <a href="https://github.com/lightningpixel/modly" target="_blank" rel="noreferrer">Modly by Lightning Pixel</a>. Local TripoSG, Hunyuan3D Mini Turbo and Trellis.2 GGUF geometry. Generated meshes need slicer inspection; STL does not carry textures.</p>
+          <label><input type="checkbox" id="meshEnabled"> Enable 3D Studio (also requires Creative Studio)</label>
+          <button id="refreshMesh">Refresh 3D models and library</button><p id="meshHardware"></p>
+          <label>Backend <select id="meshBackend"></select></label><p id="meshLicense"></p>
+          <label><input type="checkbox" id="meshTerms"> I reviewed and accept this model's and its auxiliary components' terms</label>
+          <label><input type="checkbox" id="meshTerritory"> For Hunyuan: I am eligible under its territory restrictions, or hold separate rights. Its published licence excludes the UK, EU and South Korea.</label>
+          <label><input type="checkbox" id="meshHardwareOverride"> Allow setup below hardware guidance (may run out of memory)</label>
+          <button id="installMesh">Install selected local backend</button>
+          <p>Installation requires Internet Access. Generation runs offline in a separate Python process; no Modly network server is exposed. Setup may require several GB of downloads. Trellis also uses <a href="https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md" target="_blank" rel="noreferrer">DINOv3 encoder terms</a>.</p>
+          <label>Input <select id="meshInputKind"><option value="prompt">Text prompt → Qwen image → STL</option><option value="upload">Upload an image</option><option value="artwork">Saved Dyanari artwork id</option><option value="workspace">Approved workspace image path</option></select></label>
+          <textarea id="meshPrompt" maxlength="3000" placeholder="Describe one object, or enter the artwork id / approved image path"></textarea>
+          <label>Image upload <input type="file" id="meshImage" accept="image/png,image/jpeg,image/webp"></label>
+          <label>Longest dimension in mm <input type="number" id="meshSize" min="1" max="1000" value="50"></label>
+          <label>Quality <select id="meshQuality"><option value="fast">Fast</option><option value="balanced">Balanced</option><option value="high">High</option></select></label>
+          <button id="generateMesh">Generate STL locally</button><button id="stopMesh">Stop 3D generation / setup</button><p id="meshStatus">3D Studio is OFF.</p>
+          <div id="meshLibrary"></div>
+        </div>
         <div class="card">
           Android / remote access: disabled · loopback connections only
         </div>
@@ -551,6 +569,6 @@
       </section>
       <div id="notice" role="status"></div>
     </main>
-    <script src="/app.js"></script>
+    <script src="/mesh-viewer.js"></script><script src="/app.js"></script>
   </body>
 </html>

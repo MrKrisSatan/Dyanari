@@ -1,0 +1,19 @@
+[project]
+name = "dyanari-modly-shape"
+version = "0.10.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+ "torch==2.9.1", "torchvision==0.24.1", "transformers==4.51.3", "diffusers==0.33.1", "peft==0.15.2",
+ "accelerate", "pillow", "numpy<2", "trimesh", "pymeshlab", "opencv-python-headless", "huggingface-hub<1",
+ "einops", "scipy", "scikit-image", "omegaconf", "antlr4-python3-runtime==4.9.3", "pyyaml", "jaxtyping", "typeguard==2.13.3",
+ "safetensors", "rembg", "onnxruntime", "fastapi", "httpx", "cryptography", "tqdm", "pygltflib", "ninja", "packaging"
+]
+[tool.uv]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+[tool.uv.sources]
+torch = {index="pytorch-cuda"}
+torchvision = {index="pytorch-cuda"}
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

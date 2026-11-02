@@ -1,0 +1,563 @@
+{
+  "schema": 1,
+  "version": "0.10.0",
+  "attribution": "Based on Modly by Lightning Pixel",
+  "sourceUrl": "https://github.com/lightningpixel/modly",
+  "sources": {
+    "modly": {
+      "repo": "lightningpixel/modly",
+      "revision": "a471509b164b02bc573f4eafbe2dbf5149c1d6d1",
+      "url": "https://codeload.github.com/lightningpixel/modly/zip/a471509b164b02bc573f4eafbe2dbf5149c1d6d1",
+      "sha256": "a91b66f4b74930d5f071255c7744160313bf899427c7685e72ef8fdca7836bda",
+      "bytes": 24837144
+    },
+    "hunyuan": {
+      "repo": "lightningpixel/modly-hunyuan3d-mini-turbo-extension",
+      "revision": "f5da16971346f2341f433d5ee2be06f4e1c02273",
+      "url": "https://codeload.github.com/lightningpixel/modly-hunyuan3d-mini-turbo-extension/zip/f5da16971346f2341f433d5ee2be06f4e1c02273",
+      "sha256": "db89d1deff8c1ebbded6c26350b919bb4f9e8a35f119c80022100043b47d4778",
+      "bytes": 8934
+    },
+    "tripo": {
+      "repo": "lightningpixel/modly-triposg-extension",
+      "revision": "cc30cb8bedddf8141e78dc6cf88a4cb1a305d128",
+      "url": "https://codeload.github.com/lightningpixel/modly-triposg-extension/zip/cc30cb8bedddf8141e78dc6cf88a4cb1a305d128",
+      "sha256": "a5f145adc6037d7d11c3e04fc3f9dd01ef15026faeea7f636842df94f7bbe9a1",
+      "bytes": 15241
+    },
+    "trellis": {
+      "repo": "lightningpixel/modly-trellis2-gguf-extension",
+      "revision": "db287c0c37241c354bb4addf2ca5f53ba0d866f3",
+      "url": "https://codeload.github.com/lightningpixel/modly-trellis2-gguf-extension/zip/db287c0c37241c354bb4addf2ca5f53ba0d866f3",
+      "sha256": "3a7bfcb47c5423ff7e579a66148f59ec00ef81f27202d160ee4cdfb26a723b64",
+      "bytes": 1498716
+    },
+    "hy3d": {
+      "repo": "Tencent/Hunyuan3D-2",
+      "revision": "f8db63096c8282cb27354314d896feba5ba6ff8a",
+      "url": "https://codeload.github.com/Tencent/Hunyuan3D-2/zip/f8db63096c8282cb27354314d896feba5ba6ff8a",
+      "sha256": "1be140879646034a98941e494072ce0ab26918fdc2fb59210443d56d41bc5622",
+      "bytes": 80303566
+    },
+    "triposg": {
+      "repo": "VAST-AI-Research/TripoSG",
+      "revision": "fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c",
+      "url": "https://codeload.github.com/VAST-AI-Research/TripoSG/zip/fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c",
+      "sha256": "cbb21f7dbb9f6759b84f00b5bcdce5c75a5130ae3a63d012646cd274fd945062",
+      "bytes": 16411924
+    },
+    "trellisSource": {
+      "repo": "Aero-Ex/ComfyUI-Trellis2-GGUF",
+      "revision": "b3b9e951874c5fb5c936566c93b908299be08b2c",
+      "url": "https://codeload.github.com/Aero-Ex/ComfyUI-Trellis2-GGUF/zip/b3b9e951874c5fb5c936566c93b908299be08b2c",
+      "sha256": "7105ccc158b987a62ff0c1f78cf0a394de58e3405af8fb034a72af642073ad20",
+      "bytes": 52850246
+    },
+    "gguf": {
+      "repo": "city96/ComfyUI-GGUF",
+      "revision": "6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+      "url": "https://codeload.github.com/city96/ComfyUI-GGUF/zip/6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+      "sha256": "aad273a0b774684285b4496f6edff7e2293bd29d71ef89926d6861bfdf4947ac",
+      "bytes": 38051
+    }
+  },
+  "wheels": {
+    "cumesh": {
+      "url": "https://github.com/PozzettiAndrea/cuda-wheels/releases/download/cumesh-latest/cumesh-0.0.1%2Bcu128torch2.9-cp311-cp311-win_amd64.whl",
+      "sha256": "2c8d0a0637ab6175853176ef9be6836f0172a2facac527abf8a0df5f8d0c7578",
+      "bytes": 10668285
+    },
+    "flex-gemm": {
+      "url": "https://github.com/PozzettiAndrea/cuda-wheels/releases/download/flex_gemm-latest/flex_gemm-1.0.0%2Bcu128torch2.9-cp311-cp311-win_amd64.whl",
+      "sha256": "4336347a512a904da293eb8e75758bd8be2d2ee23eaaba711c12b099ae3b0cf4",
+      "bytes": 504034
+    },
+    "o-voxel": {
+      "url": "https://github.com/PozzettiAndrea/cuda-wheels/releases/download/o_voxel-latest/o_voxel-0.0.1%2Bcu128torch2.9-cp311-cp311-win_amd64.whl",
+      "sha256": "d99347f3d373cb708e11567cbd7d63017e430dc0353f13dddc2ed3902d371d31",
+      "bytes": 390166
+    },
+    "nvdiffrast": {
+      "url": "https://github.com/PozzettiAndrea/cuda-wheels/releases/download/nvdiffrast-latest/nvdiffrast-0.4.0%2Bcu128torch2.9-cp311-cp311-win_amd64.whl",
+      "sha256": "86d26152b542f5b93dc5c6b77459d021978b998de34575068bc67a74980dda99",
+      "bytes": 4627740
+    },
+    "diso": {
+      "url": "https://github.com/PozzettiAndrea/cuda-wheels/releases/download/diso-latest/diso-0.1.4%2Bcu128torch2.9-cp311-cp311-win_amd64.whl",
+      "sha256": "19b0d417b35d0622cc4f773f143d6b72fc2d4f6b19bec62c91952eed467c978c",
+      "bytes": 718576
+    }
+  },
+  "bundles": [
+    {
+      "id": "hunyuan",
+      "name": "Hunyuan3D 2 Mini Turbo",
+      "extension": "hunyuan",
+      "environment": "shape",
+      "generator": "Hunyuan3DMiniTurboGenerator",
+      "ram": 16,
+      "vram": 6,
+      "license": "Tencent Hunyuan Community License: excludes UK, EU and South Korea; separate rights required there",
+      "licenseUrl": "https://huggingface.co/tencent/Hunyuan3D-2mini/blob/f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6/LICENSE",
+      "repo": "tencent/Hunyuan3D-2mini",
+      "revision": "f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6",
+      "files": [
+        {
+          "path": "LICENSE",
+          "bytes": 17828,
+          "sha256": "e5e6e2041e18326d82cd105a1b9404e36db55263dd9d42d4989f917c2501b67b"
+        },
+        {
+          "path": "NOTICE",
+          "bytes": 32064,
+          "sha256": "7b7ace3714c188b7a27e20edbcceaaac836540bbb63759a37039e5624c8f6bbc"
+        },
+        {
+          "path": "hunyuan3d-dit-v2-mini-turbo/config.yaml",
+          "bytes": 1664,
+          "sha256": "be28205844da01bd5d3c5ba5160f5886fb9765d542483f9d12bda8f17324db5e"
+        },
+        {
+          "path": "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors",
+          "bytes": 3822584202,
+          "sha256": "bdbcef30dd0149a281e17d5b5b1fdad1122c904e098a42f3100e04e03c247bc4"
+        },
+        {
+          "path": "hunyuan3d-vae-v2-mini-turbo/config.yaml",
+          "bytes": 335,
+          "sha256": "75315e176c36b290b317f187a46adc08f01a7193836f8e77767eec76e868d2ab"
+        },
+        {
+          "path": "hunyuan3d-vae-v2-mini-turbo/model.fp16.safetensors",
+          "bytes": 407410402,
+          "sha256": "5dcaca67a8da9e7079fb7b55714a572d0651ac95983bb43099913feaf6738f94"
+        }
+      ],
+      "bytes": 4230046495
+    },
+    {
+      "id": "tripo",
+      "name": "TripoSG",
+      "extension": "tripo",
+      "environment": "shape",
+      "generator": "TripoSGGenerator",
+      "ram": 16,
+      "vram": 8,
+      "license": "MIT (TripoSG); auxiliary dependencies have their own licences",
+      "licenseUrl": "https://github.com/VAST-AI-Research/TripoSG/blob/fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c/LICENSE",
+      "repo": "VAST-AI/TripoSG",
+      "revision": "2c1c516d22d58db486a058d98d31bb6177344e06",
+      "files": [
+        {
+          "path": "feature_extractor_dinov2/preprocessor_config.json",
+          "bytes": 436,
+          "sha256": "14e780d86fa1861f8751f868d7f45425b5feb55c38ca26f152ca5097ab30f828"
+        },
+        {
+          "path": "image_encoder_dinov2/config.json",
+          "bytes": 1104,
+          "sha256": "8ed81b0d5ffd2c8b2cecd7dc1326d3eefa409bc9d525537b6b2a3c70a992fd02"
+        },
+        {
+          "path": "image_encoder_dinov2/model.safetensors",
+          "bytes": 1217522888,
+          "sha256": "399fba97a95f22c36834418bc69373364a99af3a1153da1c0fb31db567c92e23"
+        },
+        {
+          "path": "model_index.json",
+          "bytes": 525,
+          "sha256": "750af638d10fc67a5f43d19ef0a0d1d3d446174e24b73bddd0a49226016c80c2"
+        },
+        {
+          "path": "scheduler/scheduler_config.json",
+          "bytes": 158,
+          "sha256": "ea7c9b4d502dcaba97cd85291cfd7dbd3c6c82cbc4c775af5c6d9224864279c9"
+        },
+        {
+          "path": "transformer/config.json",
+          "bytes": 191,
+          "sha256": "54ad779e68f9bc7303122cdf291f6db48dec7c67e41d28c05ac359daf914128a"
+        },
+        {
+          "path": "transformer/diffusion_pytorch_model.safetensors",
+          "bytes": 5758280104,
+          "sha256": "9192b5923f7b605b394192809aa2ceb73bf0f4009674d8e3b999b45bb97d4bf2"
+        },
+        {
+          "path": "vae/config.json",
+          "bytes": 335,
+          "sha256": "2fb6ba9b364d42c9681879dca0f7edcb978f2db974a1ca4b15d28f9b15a5baed"
+        },
+        {
+          "path": "vae/diffusion_pytorch_model.safetensors",
+          "bytes": 970685468,
+          "sha256": "a2e667c24927a5a35e5f19fcb4c75890e9399aa966b6db8131d7df733a750c8b"
+        }
+      ],
+      "bytes": 7946491209
+    },
+    {
+      "id": "trellis-Q4_K_M",
+      "name": "Trellis.2 GGUF Q4_K_M",
+      "extension": "trellis",
+      "environment": "trellis",
+      "generator": "Trellis2GGUFGenerator",
+      "quant": "Q4_K_M",
+      "ram": 24,
+      "vram": 8,
+      "license": "Trellis.2 MIT plus DINOv3 vision encoder licence and third-party components; review all linked terms",
+      "licenseUrl": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "repo": "Aero-Ex/Trellis2-GGUF",
+      "revision": "edf81aef93af0823ac8721da3c9cd3c52d539f87",
+      "files": [
+        {
+          "path": "Vision/dinov3-vitl16-pretrain-lvd1689m.safetensors",
+          "bytes": 1212559808,
+          "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+        },
+        {
+          "path": "Vision/preprocessor_config.json",
+          "bytes": 584,
+          "sha256": "1e086dc38f0b2b20d62036d46068fd019d8cb72025d88925dfaec70bfd6b4beb"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.json",
+          "bytes": 245,
+          "sha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.safetensors",
+          "bytes": 147591972,
+          "sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.json",
+          "bytes": 678,
+          "sha256": "5f1b856dffce79466fb18f5f0eefc08f08c673b24b3c05b20359c0b6d318a209"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.safetensors",
+          "bytes": 948490494,
+          "sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581"
+        },
+        {
+          "path": "pipeline.json",
+          "bytes": 4186,
+          "sha256": "222c359ab1ed9bc6735a640a34f95d47f8681b9bc4aaa101bfb80274676253c6"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16.json",
+          "bytes": 467,
+          "sha256": "6cdfb636854f60ffcadd8c49244169cd449f34c5ccdb55b5ff7c04678f9c399e"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+          "bytes": 458,
+          "sha256": "7ebd6d367393f52fee9e92c2b3d727a9026a338549c6a6fa84c7ea122140ffdd"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+          "bytes": 458,
+          "sha256": "ddbd7a1d34ce9a8e7af2f6ef9ae686d9ab49f69e62dacb98d8409b511cdbd5e2"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16_Q4_K_M.gguf",
+          "bytes": 788950208,
+          "sha256": "67a521fff20c9fb97d87d1a71feea4d3ead17d458eb0bbc86feb4ed87411b9d2"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16_Q4_K_M.gguf",
+          "bytes": 789245216,
+          "sha256": "4078c6ed5051f022362141f54059bea0408cfafd762d434753948d1e3cd3edf7"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16_Q4_K_M.gguf",
+          "bytes": 789245216,
+          "sha256": "14f8bb3e8a35e7a72dc31bedc5486da4e1c1d129baf13b40f8d3422ed6265f83"
+        }
+      ],
+      "bytes": 4676089990,
+      "licenseDocuments": [
+        "dinov3",
+        "trellis2"
+      ]
+    },
+    {
+      "id": "trellis-Q5_K_M",
+      "name": "Trellis.2 GGUF Q5_K_M",
+      "extension": "trellis",
+      "environment": "trellis",
+      "generator": "Trellis2GGUFGenerator",
+      "quant": "Q5_K_M",
+      "ram": 24,
+      "vram": 10,
+      "license": "Trellis.2 MIT plus DINOv3 vision encoder licence and third-party components; review all linked terms",
+      "licenseUrl": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "repo": "Aero-Ex/Trellis2-GGUF",
+      "revision": "edf81aef93af0823ac8721da3c9cd3c52d539f87",
+      "files": [
+        {
+          "path": "Vision/dinov3-vitl16-pretrain-lvd1689m.safetensors",
+          "bytes": 1212559808,
+          "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+        },
+        {
+          "path": "Vision/preprocessor_config.json",
+          "bytes": 584,
+          "sha256": "1e086dc38f0b2b20d62036d46068fd019d8cb72025d88925dfaec70bfd6b4beb"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.json",
+          "bytes": 245,
+          "sha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.safetensors",
+          "bytes": 147591972,
+          "sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.json",
+          "bytes": 678,
+          "sha256": "5f1b856dffce79466fb18f5f0eefc08f08c673b24b3c05b20359c0b6d318a209"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.safetensors",
+          "bytes": 948490494,
+          "sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581"
+        },
+        {
+          "path": "pipeline.json",
+          "bytes": 4186,
+          "sha256": "222c359ab1ed9bc6735a640a34f95d47f8681b9bc4aaa101bfb80274676253c6"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16.json",
+          "bytes": 467,
+          "sha256": "6cdfb636854f60ffcadd8c49244169cd449f34c5ccdb55b5ff7c04678f9c399e"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+          "bytes": 458,
+          "sha256": "7ebd6d367393f52fee9e92c2b3d727a9026a338549c6a6fa84c7ea122140ffdd"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+          "bytes": 458,
+          "sha256": "ddbd7a1d34ce9a8e7af2f6ef9ae686d9ab49f69e62dacb98d8409b511cdbd5e2"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16_Q5_K_M.gguf",
+          "bytes": 948202688,
+          "sha256": "581afa00d375abedb55afde534460b3a91b92a405b6b0511d1f6b03c3bd12028"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16_Q5_K_M.gguf",
+          "bytes": 948497696,
+          "sha256": "d4864391a4086f344f94d2b2a2bd09b5ddae7bdd107017dacc01714eb800dc50"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16_Q5_K_M.gguf",
+          "bytes": 948497696,
+          "sha256": "6f299a092fe92ea973885565b2e5b544911f85fb8628e1d543b67089e4dff675"
+        }
+      ],
+      "bytes": 5153847430,
+      "licenseDocuments": [
+        "dinov3",
+        "trellis2"
+      ]
+    },
+    {
+      "id": "trellis-Q6_K",
+      "name": "Trellis.2 GGUF Q6_K",
+      "extension": "trellis",
+      "environment": "trellis",
+      "generator": "Trellis2GGUFGenerator",
+      "quant": "Q6_K",
+      "ram": 24,
+      "vram": 12,
+      "license": "Trellis.2 MIT plus DINOv3 vision encoder licence and third-party components; review all linked terms",
+      "licenseUrl": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "repo": "Aero-Ex/Trellis2-GGUF",
+      "revision": "edf81aef93af0823ac8721da3c9cd3c52d539f87",
+      "files": [
+        {
+          "path": "Vision/dinov3-vitl16-pretrain-lvd1689m.safetensors",
+          "bytes": 1212559808,
+          "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+        },
+        {
+          "path": "Vision/preprocessor_config.json",
+          "bytes": 584,
+          "sha256": "1e086dc38f0b2b20d62036d46068fd019d8cb72025d88925dfaec70bfd6b4beb"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.json",
+          "bytes": 245,
+          "sha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.safetensors",
+          "bytes": 147591972,
+          "sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.json",
+          "bytes": 678,
+          "sha256": "5f1b856dffce79466fb18f5f0eefc08f08c673b24b3c05b20359c0b6d318a209"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.safetensors",
+          "bytes": 948490494,
+          "sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581"
+        },
+        {
+          "path": "pipeline.json",
+          "bytes": 4186,
+          "sha256": "222c359ab1ed9bc6735a640a34f95d47f8681b9bc4aaa101bfb80274676253c6"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16.json",
+          "bytes": 467,
+          "sha256": "6cdfb636854f60ffcadd8c49244169cd449f34c5ccdb55b5ff7c04678f9c399e"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+          "bytes": 458,
+          "sha256": "7ebd6d367393f52fee9e92c2b3d727a9026a338549c6a6fa84c7ea122140ffdd"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+          "bytes": 458,
+          "sha256": "ddbd7a1d34ce9a8e7af2f6ef9ae686d9ab49f69e62dacb98d8409b511cdbd5e2"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16_Q6_K.gguf",
+          "bytes": 1117408448,
+          "sha256": "7deed041e83dac2f0c3d46e9b9aed0bf5209c2f0998d0221c530e06d953d5b77"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16_Q6_K.gguf",
+          "bytes": 1117703456,
+          "sha256": "86f3e5bde01a2212a91544e7aed47396b09037058a4fbabd0231fea3c8d21e85"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16_Q6_K.gguf",
+          "bytes": 1117703456,
+          "sha256": "7a92b7bec4b2184b6c173fdf87fdeeaf8e2efbfbc6c77f7df9a5595930cec565"
+        }
+      ],
+      "bytes": 5661464710,
+      "licenseDocuments": [
+        "dinov3",
+        "trellis2"
+      ]
+    },
+    {
+      "id": "trellis-Q8_0",
+      "name": "Trellis.2 GGUF Q8_0",
+      "extension": "trellis",
+      "environment": "trellis",
+      "generator": "Trellis2GGUFGenerator",
+      "quant": "Q8_0",
+      "ram": 24,
+      "vram": 16,
+      "license": "Trellis.2 MIT plus DINOv3 vision encoder licence and third-party components; review all linked terms",
+      "licenseUrl": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "repo": "Aero-Ex/Trellis2-GGUF",
+      "revision": "edf81aef93af0823ac8721da3c9cd3c52d539f87",
+      "files": [
+        {
+          "path": "Vision/dinov3-vitl16-pretrain-lvd1689m.safetensors",
+          "bytes": 1212559808,
+          "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+        },
+        {
+          "path": "Vision/preprocessor_config.json",
+          "bytes": 584,
+          "sha256": "1e086dc38f0b2b20d62036d46068fd019d8cb72025d88925dfaec70bfd6b4beb"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.json",
+          "bytes": 245,
+          "sha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5"
+        },
+        {
+          "path": "decoders/Stage1/ss_dec_conv3d_16l8_fp16.safetensors",
+          "bytes": 147591972,
+          "sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.json",
+          "bytes": 678,
+          "sha256": "5f1b856dffce79466fb18f5f0eefc08f08c673b24b3c05b20359c0b6d318a209"
+        },
+        {
+          "path": "decoders/Stage2/shape_dec_next_dc_f16c32_fp16.safetensors",
+          "bytes": 948490494,
+          "sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581"
+        },
+        {
+          "path": "pipeline.json",
+          "bytes": 4186,
+          "sha256": "222c359ab1ed9bc6735a640a34f95d47f8681b9bc4aaa101bfb80274676253c6"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16.json",
+          "bytes": 467,
+          "sha256": "6cdfb636854f60ffcadd8c49244169cd449f34c5ccdb55b5ff7c04678f9c399e"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+          "bytes": 458,
+          "sha256": "7ebd6d367393f52fee9e92c2b3d727a9026a338549c6a6fa84c7ea122140ffdd"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+          "bytes": 458,
+          "sha256": "ddbd7a1d34ce9a8e7af2f6ef9ae686d9ab49f69e62dacb98d8409b511cdbd5e2"
+        },
+        {
+          "path": "refiner/ss_flow_img_dit_1_3B_64_bf16_Q8_0.gguf",
+          "bytes": 1425960128,
+          "sha256": "77fe692f2361b82dadcdad202b41118ba5cee18dbd7b4b44900e15bb01f0d88e"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_1024_bf16_Q8_0.gguf",
+          "bytes": 1426255136,
+          "sha256": "6e93d61b657aa2e33c259ec519f993be9d37297499875b78c137c7b954074fa3"
+        },
+        {
+          "path": "shape/slat_flow_img2shape_dit_1_3B_512_bf16_Q8_0.gguf",
+          "bytes": 1426255136,
+          "sha256": "b4ff432308ef886927b54ad2a42b61126e804f2dd9f3bfa2dfba5a43dc9569db"
+        }
+      ],
+      "bytes": 6587119750,
+      "licenseDocuments": [
+        "dinov3",
+        "trellis2"
+      ]
+    }
+  ],
+  "background": {
+    "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx",
+    "bytes": 175997641,
+    "sha256": "8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491"
+  },
+  "licenseDocuments": {
+    "dinov3": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/dinov3/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "reviewUrl": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md",
+      "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e",
+      "bytes": 7503
+    },
+    "trellis2": {
+      "url": "https://raw.githubusercontent.com/microsoft/TRELLIS.2/75fbf0183001ed9876c8dbb35de6b68552ee08bd/LICENSE",
+      "reviewUrl": "https://github.com/microsoft/TRELLIS.2/blob/75fbf0183001ed9876c8dbb35de6b68552ee08bd/LICENSE",
+      "sha256": "d9a1b1e30d633d5732ea18e3cba9538d293ebc53e1a9e4e96ab739e0c5c4f1cb",
+      "bytes": 1140
+    }
+  }
+}

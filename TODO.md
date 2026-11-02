@@ -4,6 +4,9 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Next work, in order
 
+- [x] **CREATIVE-04 · Local Modly image/prompt-to-STL workflow.** Optional pinned setup, complete geometry bundles, scoped/upload/artwork inputs, Qwen prompt chaining, chat tools, real STL/GLB downloads, mm scaling, scene transforms, bounded simplification, inspection and local preview. Evidence: 10 Node unit tests, seven Python installer regressions, authenticated HTTP acceptance, actual TripoSG prompt → Qwen → watertight 60 mm STL (270 seconds), real Trellis Q4 → inspected 60 mm STL (230 seconds), actual Windows worker/setup exclusion and repeat frozen repair checks; [0.10](RELEASE-0.10.md). This validates the two exercised backends, not Hunyuan or printability of arbitrary outputs.
+- [ ] **CREATIVE-05 · Remaining 3D backend acceptance and repair.** Hunyuan adapter/catalog/setup are integrated but need an eligible jurisdiction or separately obtained rights and actual inference acceptance; published terms exclude UK/EU/South Korea and eligibility is unconfirmed here. Validate higher Trellis quantizations/architectures, CPU/AMD support if added, fresh-machine 3D setup and an explicitly controlled mesh-repair workflow. Trellis test output was not watertight and was honestly flagged.
+
 - [x] **CREATIVE-03 · Qwen Image 2.1 and optional inspiration.** Hardware-selected complete bundles, pinned isolated ComfyUI/GGUF runtime, requested chat images, actual PNG delivery, theme-only local-model decisions, quiet hours, quotas and persistent Stop pause. Evidence: 17 image unit tests, image/chat HTTP acceptance, actual Q2/Q4 512×512/25-step renders and Qwen3 4B decision → real Q4 artwork → consumed quota without chat-memory capture; [0.9](RELEASE-0.9.md). Higher tiers, CPU/AMD rendering and clean-machine installation remain unverified.
 
 - [x] **VOICE-04 · VoiceStudio integration and Dyanari voice.** Pinned separate local backend/full studio, optional setup, saved British adult female design, real TTS, reviewed Whisper base transcription, lifecycle and permission controls. Evidence: 11 unit tests, voice HTTP acceptance, actual source/runtime/model installation, real speech + ASR and identical saved identity after service restart; [0.8](RELEASE-0.8.md). Optional advanced jobs/engines and GPU acceleration remain unverified.
@@ -59,7 +62,7 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Latest handoff
 
-0.9 adds Qwen image setup, CREATIVE-01/03, bounded optional image inspiration and a fuller British voice identity (the previous whisper voice remains). Continue with REL-01 if a clean supported Windows VM is available; otherwise DOC-01 is the next ready engineering milestone. Do not reimplement the checked foundations. Update this handoff and evidence when finishing another release.
+0.10 adds Modly 3D Studio, real TripoSG and Trellis Q4 STL exports, preview/inspection, prompt chaining and verified setup/repair. Hunyuan remains gated on territorial eligibility/separate rights and untested; see CREATIVE-05. 0.9 image/voice functionality and canonical memory are preserved. Continue REL-01 with a clean Windows VM; otherwise DOC-01 is ready. Do not reimplement checked foundations or claim the full brief is complete.
 
 ## Original brief phase map
 

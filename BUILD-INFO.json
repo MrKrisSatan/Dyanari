@@ -1,9 +1,9 @@
 {
-  "version": "0.9.0",
-  "sha256": "6C6305941B78EC41DC47F1447339A030404A5CCA73C477141D12B73239990BA9",
-  "bytes": 158142107,
-  "sourceCommit": "7b44c3c",
-  "automatedTests": 119,
+  "version": "0.10.0",
+  "sha256": "2350C111723C44B45627D5EBE15CAEAE217EC64A7ABF8B784EAAA09C31A64B39",
+  "bytes": 158219421,
+  "sourceCommit": "8586466902a87326b46e650af729e319b7eab0fa",
+  "automatedTests": 136,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -15,13 +15,13 @@
   "notepadWorkflow": "passed: actual approved note creation, Notepad launch and UI Automation text readback",
   "guiLaunchPipeRegression": "passed",
   "installer": {
-    "selfTests": 33,
+    "selfTests": 49,
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.9.0.exe",
-    "sha256": "090A8707A68F0A987BB14F8CD2B8C86DE115A91F65267CF37155958C54B6498B",
-    "bytes": 209959956
+    "file": "DyanariSetup-0.10.0.exe",
+    "sha256": "93DA82CB46744A3C333FD41D000C65A7E4C5C049034AF53117AF349DE97CD19F",
+    "bytes": 210259476
   },
   "development": {
     "actualProjectTests": 7,
@@ -74,7 +74,7 @@
     "gpuVoice": "not validated; managed runtime uses CPU",
     "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
   },
-  "desktopFile": "Dyanari-0.9.0.exe",
+  "desktopFile": "Dyanari-0.10.0.exe",
   "qwenImages": {
     "httpAcceptance": "passed",
     "bundles": 9,
@@ -85,5 +85,71 @@
     "unitTests": 17,
     "ui": "verified hardware selection, optional consent and default OFF controls",
     "cpu": "startup passed; full CPU render unverified"
+  },
+  "modly": {
+    "platform": "real NVIDIA RTX 3060 8GB / 16GB RAM; CPU/AMD/fresh-machine setup unverified",
+    "nativeUi": "passed: all six bundles, default OFF controls, hardware recommendation, real STL WebGL preview and keyboard rotation",
+    "repair": "passed: Tripo frozen repair and repeated Trellis repair, verified weight reuse, normalized native wheel metadata",
+    "sourceRevision": "a471509b164b02bc573f4eafbe2dbf5149c1d6d1",
+    "runtimeLocks": "passed: actual Windows second-worker and concurrent setup rejection",
+    "hunyuan": "adapter integrated; no activation/inference acceptance, territorial eligibility or separate rights unconfirmed",
+    "pythonInstallerTests": 7,
+    "geometry": "passed: actual instanced scene transforms, requested size, Z-up build plane",
+    "applicationTests": 125,
+    "localServiceTests": 4,
+    "realTrellis": {
+      "passed": true,
+      "seconds": 230.253,
+      "backend": "trellis-Q4_K_M",
+      "report": {
+        "schema": 1,
+        "triangles": 749999,
+        "vertices": 371314,
+        "watertight": false,
+        "winding_consistent": false,
+        "extents_mm": [
+          44.33085386380079,
+          60,
+          42.25820751399187
+        ],
+        "units": "mm",
+        "up_axis": "Z",
+        "original_triangles": 5321043,
+        "simplified": true,
+        "print_ready_certified": false
+      },
+      "chatMemoryUnchanged": true,
+      "worker": "real GPU inference, pinned U2Net preprocessing and native CUDA extensions"
+    },
+    "nodeUnitTests": 10,
+    "higherTiers": "unverified",
+    "realPromptToStl": {
+      "passed": true,
+      "seconds": 269.934,
+      "backend": "tripo",
+      "report": {
+        "schema": 1,
+        "triangles": 750000,
+        "vertices": 375006,
+        "watertight": true,
+        "winding_consistent": true,
+        "extents_mm": [
+          45.46363523122409,
+          60,
+          47.972160258067404
+        ],
+        "units": "mm",
+        "up_axis": "Z",
+        "original_triangles": 1440976,
+        "simplified": true,
+        "print_ready_certified": false
+      },
+      "chatMemoryUnchanged": true,
+      "sourceModel": "Qwen Image 2.1 Q4",
+      "geometryModel": "TripoSG",
+      "worker": "real GPU inference"
+    },
+    "httpAcceptance": "passed: authenticated fixture process, mesh downloads, private chat tool continuation, cancellation, revocation, restore",
+    "bundles": 6
   }
 }

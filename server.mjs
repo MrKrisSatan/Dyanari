@@ -61,7 +61,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, {
         app: "dyanari",
         busy:busy||core.modelBusy||core.agentTasks.running,
-        version: "0.9.0",
+        version: "0.10.0",
         desktop: process.env.DYANARI_DESKTOP === "1",
       });
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -79,7 +79,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (
       req.method === "GET" &&
-      ["/app.js", "/style.css"].includes(url.pathname)
+      ["/app.js", "/mesh-viewer.js", "/style.css"].includes(url.pathname)
     ) {
       res.setHeader(
         "Content-Type",
@@ -91,7 +91,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.headers["x-dyanari-token"] !== token)
       return send(res, { error: "Authentication required" }, 403);
-    const b = req.method === "POST" ? await json(req,url.pathname==='/api/restore'?32*1024*1024:1000000) : {};
+    const b = req.method === "POST" ? await json(req,url.pathname==='/api/restore'||url.pathname==='/api/3d/generate'?32*1024*1024:1000000) : {};
     if(req.method==='GET'&&url.pathname==='/api/tasks/state')return send(res,core.agentTasks.state());
     if (req.method === "GET" && url.pathname === "/api/state") {
       let models = [],
@@ -154,6 +154,11 @@ const server = http.createServer(async (req, res) => {
     if(req.method==='GET'&&url.pathname==='/api/memory/export')return send(res,core.memoryLedger.export());
     if (req.method === "GET" && url.pathname === "/api/creative/state")
       return send(res, await core.creative.state());
+    if(req.method==='GET'&&url.pathname==='/api/3d/state')return send(res,await core.modly.state());
+    if(req.method==='GET'&&url.pathname==='/api/mesh'){
+      const format=url.searchParams.get('format')||'stl',file=core.modly.asset(url.searchParams.get('id'),format);
+      res.writeHead(200,{'Content-Type':format==='stl'?'model/stl':'model/gltf-binary','Content-Disposition':'attachment; filename="Dyanari-model.'+format+'"','Cache-Control':'no-store'});return fs.createReadStream(file).pipe(res);
+    }
     if (req.method === "GET" && url.pathname === "/api/artwork") {
       const art = core.creative.asset(url.searchParams.get("id"));
       res.setHeader("Content-Type", "image/png");
@@ -162,6 +167,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/notifications")
       return send(res, core.scheduler.notifications());
     if (req.method !== "POST") return send(res, { error: "Not found" }, 404);
+    if(url.pathname==='/api/3d/install')return send(res,await core.modly.install(b));
+    if(url.pathname==='/api/3d/stop'){core.modly.cancel();return send(res,{stopped:true})}
+    if(url.pathname==='/api/3d/generate'){
+      if(busy||core.modelBusy||core.agentTasks.running)throw Error('Another model task is active');const release=core.resources.acquire('3D generation');busy=true;core.modelBusy=true;const c=new AbortController();core.controllers.add(c);
+      try{return send(res,await core.modly.generate(b,c.signal))}finally{core.controllers.delete(c);busy=false;core.modelBusy=false;release()}
+    }
     if(url.pathname==='/api/studio/install')return send(res,core.voiceStudio.install(b));
     if(url.pathname==='/api/studio/open')return send(res,core.voiceStudio.open());
     if(url.pathname==='/api/studio/start')return send(res,await core.voiceStudio.start());
@@ -316,6 +327,7 @@ const server = http.createServer(async (req, res) => {
       core.controllers.forEach((c) => c.abort());
       if(b.shutdown!==true)core.creative.inspiration.pause();
       core.creative.cancel();
+      core.modly.cancel();
       core.creative.qwen.stop();
       core.voiceStudio.stop();
       core.actions.cancel();
@@ -442,6 +454,7 @@ const server = http.createServer(async (req, res) => {
         proactive: false,
         screen: false,
         creative: false,
+        meshEnabled: false,
         spontaneousImages: false,
         computer: false,
         runTools: false,
@@ -617,8 +630,8 @@ const server = http.createServer(async (req, res) => {
               const args = call.function.arguments;
               if (!validToolArguments(def,args))
                 throw Error("Tool schema validation failed");
-              if(name==='generate_image'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),1800000)}
-              try{result = await core.tool(name, args, c.signal)}finally{if(name==='generate_image'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),180000)}}
+              if(name==='generate_image'||name==='generate_stl'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),name==='generate_stl'?3600000:1800000)}
+              try{result = await core.tool(name, args, c.signal)}finally{if(name==='generate_image'||name==='generate_stl'){clearTimeout(timeout);timeout=setTimeout(()=>c.abort(),180000)}}
             } catch (e) {
               result = { error: e.message };
             }
