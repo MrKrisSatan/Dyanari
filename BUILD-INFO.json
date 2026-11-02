@@ -1,9 +1,9 @@
 {
-  "version": "0.7.0",
-  "sha256": "B07CCB90D77C9ED924E81FCBFC57842AD0FB16B4A06BCEC0BC6EB36FD7050AE8",
-  "bytes": 158088347,
-  "sourceCommit": "b59f2ef4e3f6c08970c6bbdc907b104e5b631fc8",
-  "automatedTests": 91,
+  "version": "0.8.0",
+  "sha256": "14C3BA291C9E1DF3BE81385D716D865EB960D58FA12A3B6D352F6955DEC3F61E",
+  "bytes": 158100635,
+  "sourceCommit": "6bd031bac70cbbe62355b8853e177326b5f062d9",
+  "automatedTests": 101,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -15,13 +15,13 @@
   "notepadWorkflow": "passed: actual approved note creation, Notepad launch and UI Automation text readback",
   "guiLaunchPipeRegression": "passed",
   "installer": {
-    "selfTests": 11,
+    "selfTests": 13,
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.7.0.exe",
-    "sha256": "31D970F4EE5264E79CFE2EF364AB5661501AC9D3E7D851CC39D82C1537447918",
-    "bytes": 209772564
+    "file": "DyanariSetup-0.8.0.exe",
+    "sha256": "4E1FF7B6A872C6D3C308C14BD3076F852A8715B3146C36FC1E6F84234690E11D",
+    "bytes": 209795604
   },
   "development": {
     "actualProjectTests": 7,
@@ -59,5 +59,19 @@
     "unitTests": 14,
     "recovery": "restart, second host and revocation pause; old approvals invalidated; no mutation replay",
     "httpAcceptance": "passed: original intent, real command, post-approval continuation, private rejection, Stop and restore"
+  },
+  "voiceStudio": {
+    "allOptionalEngines": "not validated",
+    "httpAcceptance": "passed: auth, default OFF, private omission, real WAV delivery, external service preservation, model-independent profile and backup permission reset",
+    "version": "0.5.7",
+    "realTranscription": "passed: Whisper base correctly transcribed generated preview, microphone never activated",
+    "actualInstallation": "passed: isolated CPU Python dependencies, full studio frozen-lockfile web build, pinned TTS and Whisper weights",
+    "nativeShell": "loaded successfully; voice-page automation not completed because native click geometry was unavailable",
+    "unitTests": 10,
+    "privateTerms": "public installers leave model consent unset",
+    "realSpeech": "passed: actual OmniVoice speech, validated WAV and identical identity sample after service restart",
+    "voice": "Velvet British: adult female, low pitch, whisper, fixed saved identity, 0.92 speed",
+    "gpuVoice": "not validated; managed runtime uses CPU",
+    "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
   }
 }

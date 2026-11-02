@@ -341,7 +341,25 @@
           Features that still need setup are labelled below.
         </p>
         <div id="voicePanel" class="card">
-          <h3>Local Windows speech</h3>
+          <h3>Dyanari’s voice</h3>
+          <label><input type="checkbox" id="studioEnabled"> Enable local VoiceStudio (OFF by default)</label>
+          <p id="studioStatus">VoiceStudio not checked</p>
+          <p>Optional setup downloads several GB of pinned runtime/model files. Enable Internet for setup; managed speech runs offline afterwards.</p>
+          <label><input id="studioTerms" type="checkbox"> I accept personal noncommercial use under the OmniVoice weight, Higgs Audio 2 and Meta Llama 3 terms linked in VOICESTUDIO.md. Download the voice and local Whisper base models too.</label>
+          <button id="studioInstall">Install / repair VoiceStudio locally</button>
+          <p>Velvet British: adult female, low pitch, softly breathy and unhurried. A saved identity stays the same across chat models. Preview the sound before choosing it.</p>
+          <label>Speech provider <select id="speechProvider"><option value="windows">Windows speech</option><option value="voicestudio">VoiceStudio saved identity</option></select></label>
+          <label>Local service port <input id="studioPort" type="number" min="1024" max="65535" value="3900"></label>
+          <button id="studioStart">Start installed service</button><button id="studioRefresh">Refresh voices & engines</button><button id="studioStop">Stop owned service</button>
+          <p>Use Install / repair above, or run setup-voicestudio.ps1 in the Dyanari folder. Model terms must be accepted in the studio. Managed inference runs offline on CPU; model downloads and advanced jobs are controlled separately in VoiceStudio.</p>
+          <button id="studioDesign">Create Dyanari’s British voice</button><button id="studioSample">Preview saved identity</button>
+          <label>Saved identity <select id="studioProfile"></select></label>
+          <label>Engine <select id="studioEngine"><option value="omnivoice">omnivoice</option></select></label>
+          <label>Speed <input id="studioSpeed" type="number" min="0.5" max="1.5" step="0.01" value="0.92"></label><button id="studioSave">Use selected voice</button>
+          <button id="studioOpen">Open full VoiceStudio: design, cloning, dubbing & audiobooks</button>
+          <p>VoiceStudio has its own history, permissions and model terms. Dyanari’s Internet switch is not a firewall for external software. Use only authorised reference voices. Private conversation text is not sent to VoiceStudio.</p>
+          <label>Transcribe a short WAV locally (under 650 KB)<input id="studioAudio" type="file" accept="audio/wav"></label><button id="studioTranscribe">Transcribe for review</button><textarea id="studioTranscript" readonly placeholder="Review transcription here; nothing is sent to chat automatically"></textarea>
+          <h4>Windows microphone recognition</h4>
           <label
             ><input id="microphoneEnabled" type="checkbox" /> Microphone
             permission (OFF by default)</label

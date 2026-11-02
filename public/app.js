@@ -87,6 +87,7 @@ async function refresh(history = false) {
   $("creativeEnabled").checked = !!s.creative;
   $("speakReplies").checked = !!s.speakReplies;
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
+  $('studioEnabled').checked=s.voiceStudioEnabled;$('speechProvider').value=s.speechProvider;$('studioPort').value=s.voiceStudioPort;$('studioSpeed').value=s.voiceStudioSpeed;
   renderComputerState(s, state.actions);
   renderDevelopment(s,state.development);
   renderLinkedProjects(s,state.linkedProjects);
@@ -485,7 +486,7 @@ async function speak(text) {
   const r = await fetch("/api/speak", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Dyanari-Token": token },
-    body: JSON.stringify({ text, voice: $("voiceSelect").value }),
+    body: JSON.stringify({ text, voice: $("voiceSelect").value, private: $("private")?.checked || false }),
   });
   if (!r.ok) throw Error((await r.json()).error);
   if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -1008,3 +1009,20 @@ function renderAgentTasks(tasks){
 $('agentTasksEnabled').onchange=()=>safe(()=>updateSettings({agentTasksEnabled:$('agentTasksEnabled').checked}));
 $('createAgentTask').onclick=()=>safe(async()=>{await api('tasks/create',{request:$('agentTaskRequest').value,workspace:$('agentTaskWorkspace').value,mode:$('agentTaskMode').value,autoContinue:$('agentTaskAutoContinue').checked,requiredRecipeId:$('agentTaskRequiredRecipe').value});notice('Project task queued. Execution previews require your approval.');await refresh()});
 $('refreshAgentTasks').onclick=()=>safe(async()=>renderAgentTasks(await api('tasks/state')));
+
+async function studioStatus(){const v=await api('studio/state');$('studioStatus').textContent=v.enabled?(v.ready?`VoiceStudio ${v.health.version}: connected · ${v.health.device} · ${v.owned?'Dyanari-managed':'external service'}`:(v.installing?'Installing VoiceStudio; refresh for status':v.lastError||v.error||'Not running')):'VoiceStudio: OFF';return v}
+async function studioCatalog(){await studioStatus();const c=await api('studio/catalog');const profiles=Array.isArray(c.profiles)?c.profiles:c.profiles.profiles||[];const engines=Array.isArray(c.engines)?c.engines:c.engines.engines||[];for(const [id,rows,key,label,current] of [['studioProfile',profiles,'id','name',state.settings.voiceStudioProfile],['studioEngine',engines,'id','name',state.settings.voiceStudioEngine]]){const el=$(id);el.replaceChildren();for(const row of rows){const o=document.createElement('option');o.value=row[key]||row.engine_id;o.textContent=row[label]||o.value;el.append(o)}if(![...el.options].some(o=>o.value===current)&&current){const o=document.createElement('option');o.value=current;o.textContent=current;el.append(o)}el.value=current}}
+$('studioEnabled').onchange=()=>safe(async()=>{await updateSettings({voiceStudioEnabled:$('studioEnabled').checked});await studioStatus()});
+$('speechProvider').onchange=()=>safe(()=>updateSettings({speechProvider:$('speechProvider').value}));
+$('studioStart').onclick=()=>safe(async()=>{await updateSettings({voiceStudioPort:Number($('studioPort').value)});await api('studio/start',{});notice('VoiceStudio starting. Refresh status in a few seconds.');await studioStatus()});
+$('studioRefresh').onclick=()=>safe(studioCatalog);
+$('studioStop').onclick=()=>safe(async()=>{await api('studio/stop',{});await studioStatus()});
+$('studioDesign').onclick=()=>safe(async()=>{notice('Creating Dyanari’s saved British voice identity…');await api('studio/design',{approved:true});await refresh();await studioCatalog();notice('Identity saved. Preview it to render its permanent voice sample.')});
+$('studioSample').onclick=()=>safe(async()=>{notice('Rendering saved identity; the first CPU render can take several minutes.');const r=await fetch('/api/studio/sample',{method:'POST',headers:{'Content-Type':'application/json','X-Dyanari-Token':token},body:'{}'});if(!r.ok)throw Error((await r.json()).error);if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(await r.blob());$('speechAudio').src=audioUrl;await $('speechAudio').play()});
+$('studioSave').onclick=()=>safe(()=>updateSettings({voiceStudioProfile:$('studioProfile').value,voiceStudioEngine:$('studioEngine').value,voiceStudioSpeed:Number($('studioSpeed').value),speechProvider:$('speechProvider').value}));
+$('studioOpen').onclick=()=>safe(async()=>{const v=await studioStatus();if(!v.ready)throw Error('Start VoiceStudio first');await api('studio/open',{})});
+$('studioTranscribe').onclick=()=>safe(async()=>{const f=$('studioAudio').files[0];if(!f||f.size>650000)throw Error('Choose a WAV under 650 KB');const bytes=new Uint8Array(await f.arrayBuffer());let str='';for(const b of bytes)str+=String.fromCharCode(b);const v=await api('studio/transcribe',{audio:btoa(str)});$('studioTranscript').value=v.text||''});
+
+
+
+$('studioInstall').onclick=()=>safe(async()=>{await api('studio/install',{approved:true,acceptTerms:$('studioTerms').checked});notice('Pinned VoiceStudio setup started. Refresh status to check progress; details are in voicestudio/setup.log.');await studioStatus()});

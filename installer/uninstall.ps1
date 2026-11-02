@@ -5,7 +5,7 @@ if([IO.Path]::GetFullPath($PSScriptRoot) -ne $expected){throw 'Uninstaller must 
 if(Get-Process Dyanari -ErrorAction SilentlyContinue){[Windows.Forms.MessageBox]::Show('Close Dyanari before uninstalling.','Dyanari')|Out-Null;exit 1}
 if([Windows.Forms.MessageBox]::Show('Remove the Dyanari application? Your memory, settings, models and download cache will be preserved in LocalAppData\Dyanari.','Uninstall Dyanari','YesNo') -ne 'Yes'){exit}
 # Delete only known application-owned files. Never recursively remove the data folder.
-foreach($name in @('Dyanari.exe','installation.json')){$p=Join-Path $expected $name;if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force}}
+foreach($name in @('Dyanari.exe','installation.json','setup-voicestudio.ps1','VOICESTUDIO.md')){$p=Join-Path $expected $name;if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force}}
 $runtime=[IO.Path]::GetFullPath((Join-Path $expected 'runtime'))
 if($runtime -ne "$expected\runtime"){throw 'Unexpected runtime path'}
 if(Test-Path -LiteralPath $runtime){

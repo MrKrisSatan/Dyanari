@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><AssemblyName>DyanariSetup</AssemblyName><RootNamespace>DyanariSetup</RootNamespace><PublishSingleFile>true</PublishSingleFile><SelfContained>true</SelfContained><EnableCompressionInSingleFile>true</EnableCompressionInSingleFile><DebugType>none</DebugType></PropertyGroup>
- <ItemGroup><EmbeddedResource Include="setup.ps1"/><EmbeddedResource Include="uninstall.ps1"/><EmbeddedResource Include="models.json"/><EmbeddedResource Include="..\desktop\publish\Dyanari.exe" Link="Dyanari.exe"/></ItemGroup>
+ <ItemGroup><EmbeddedResource Include="setup.ps1"/><EmbeddedResource Include="..\setup-voicestudio.ps1" Link="setup-voicestudio.ps1"/><EmbeddedResource Include="..\VOICESTUDIO.md" Link="VOICESTUDIO.md"/><EmbeddedResource Include="uninstall.ps1"/><EmbeddedResource Include="models.json"/><EmbeddedResource Include="..\desktop\publish\Dyanari.exe" Link="Dyanari.exe"/></ItemGroup>
 </Project>

@@ -60,7 +60,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, {
         app: "dyanari",
         busy:busy||core.agentTasks.running,
-        version: "0.7.0",
+        version: "0.8.0",
         desktop: process.env.DYANARI_DESKTOP === "1",
       });
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -147,6 +147,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && url.pathname === "/api/voices")
       return send(res, await voices());
+    if(req.method==='GET'&&url.pathname==='/api/studio/state')return send(res,await core.voiceStudio.state());
+    if(req.method==='GET'&&url.pathname==='/api/studio/catalog')return send(res,await core.voiceStudio.catalog());
     if(req.method==='GET'&&url.pathname==='/api/memory/search')return send(res,core.memoryLedger.list({query:url.searchParams.get('query')||'',category:url.searchParams.get('category')||'',project:url.searchParams.has('project')?url.searchParams.get('project'):null,limit:500}));
     if(req.method==='GET'&&url.pathname==='/api/memory/export')return send(res,core.memoryLedger.export());
     if (req.method === "GET" && url.pathname === "/api/creative/state")
@@ -159,6 +161,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/notifications")
       return send(res, core.scheduler.notifications());
     if (req.method !== "POST") return send(res, { error: "Not found" }, 404);
+    if(url.pathname==='/api/studio/install')return send(res,core.voiceStudio.install(b));
+    if(url.pathname==='/api/studio/open')return send(res,core.voiceStudio.open());
+    if(url.pathname==='/api/studio/start')return send(res,await core.voiceStudio.start());
+    if(url.pathname==='/api/studio/stop')return send(res,core.voiceStudio.stop());
+    if(url.pathname==='/api/studio/design'){if(b.approved!==true)throw Error('Approve creating a saved voice identity');return send(res,await core.voiceStudio.design())}
+    if(url.pathname==='/api/studio/transcribe')return send(res,await core.voiceStudio.transcribe(b.audio));
+    if(url.pathname==='/api/studio/sample'){const wave=await core.voiceStudio.sample();res.writeHead(200,{'Content-Type':'audio/wav','Cache-Control':'no-store'});return res.end(wave)}
     if(url.pathname==='/api/tasks/create'){const id=core.agentTasks.create(b);return send(res,{id})}
     if(url.pathname==='/api/tasks/control'){
       if(b.action==='resume')core.agentTasks.resume(b.id);
@@ -288,7 +297,8 @@ const server = http.createServer(async (req, res) => {
           if (!core.settings.microphone) throw Error("Microphone is OFF");
           return send(res, await recognise(c.signal));
         }
-        const wave = await synthesise(b.text, b.voice, c.signal);
+        if(b.private===true&&core.settings.speechProvider==='voicestudio')throw Error('Private speech uses Windows speech; VoiceStudio is an independently managed service');
+        const wave = core.settings.speechProvider==='voicestudio'?await core.voiceStudio.speak(b.text,c.signal):await synthesise(b.text, b.voice, c.signal);
         res.writeHead(200, {
           "Content-Type": "audio/wav",
           "Cache-Control": "no-store",
@@ -301,6 +311,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/settings") return send(res, core.save(b));
     if (url.pathname === "/api/stop") {
       core.controllers.forEach((c) => c.abort());
+      core.voiceStudio.stop();
       core.actions.cancel();
       core.development.cancel();
       core.linkedProjects.stopAll();
@@ -436,6 +447,8 @@ const server = http.createServer(async (req, res) => {
         linkedProjects: [],
         memorySuggestionsEnabled: false,
         agentTasksEnabled: false,
+        voiceStudioEnabled: false,
+        speechProvider: "windows",
         computerMode: "observe",
         approvedApps: [],
         approvedWorkflows: [],
@@ -638,6 +651,7 @@ const server = http.createServer(async (req, res) => {
     else res.end(JSON.stringify({ error: e.message }) + "\n");
   }
 });
-server.listen(port, "127.0.0.1", () =>
-  console.log("Dyanari ready at " + origin),
-);
+server.listen(port, "127.0.0.1", () => {
+  console.log("Dyanari ready at " + origin);
+  if(core.settings.voiceStudioEnabled&&core.settings.speechProvider==='voicestudio')core.voiceStudio.start().catch(e=>{core.voiceStudio.lastError=e.message});
+});

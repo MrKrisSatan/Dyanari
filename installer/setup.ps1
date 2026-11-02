@@ -20,6 +20,7 @@ if($SelfTest){
  try{Safe-Target $PSScriptRoot '..\escape' | Out-Null;$checks+=$false}catch{$checks+=$true}
  try{Check-Hash "$PSScriptRoot\models.json" ('0'*64);$checks+=$false}catch{$checks+=$true}
  $checks+=(Test-Path -LiteralPath "$PSScriptRoot\Dyanari.exe")
+ foreach($extra in @('setup-voicestudio.ps1','VOICESTUDIO.md')){$checks+=(Test-Path -LiteralPath (Join-Path $PSScriptRoot $extra))}
  @{passed=($checks -notcontains $false);checks=$checks.Count;catalog=$catalog;appHash=(Get-FileHash "$PSScriptRoot\Dyanari.exe").Hash} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Report
  if($checks -contains $false){exit 1};exit 0
 }
@@ -115,6 +116,7 @@ $installAction={
   Copy-Item -LiteralPath $payload -Destination "$install\Dyanari.exe.new" -Force
   Check-Hash "$install\Dyanari.exe.new" (Get-FileHash $payload).Hash
   Move-Item -LiteralPath "$install\Dyanari.exe.new" -Destination "$install\Dyanari.exe" -Force
+  foreach($extra in @('setup-voicestudio.ps1','VOICESTUDIO.md')){ $extraSource=Join-Path $PSScriptRoot $extra;if(!(Test-Path -LiteralPath $extraSource)){$extraSource=Join-Path (Split-Path $PSScriptRoot -Parent) $extra};Copy-Item -LiteralPath $extraSource -Destination (Join-Path $install $extra) -Force }
   $config=@{installed=$true;dataPath=$data}
   if(Test-Path "$install\installation.json"){$old=Get-Content "$install\installation.json" -Raw|ConvertFrom-Json;if($old.defaultModel){$config.defaultModel=$old.defaultModel}}
   $config|ConvertTo-Json|Set-Content "$install\installation.json" -Encoding UTF8
@@ -143,7 +145,7 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.7.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.8.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true
