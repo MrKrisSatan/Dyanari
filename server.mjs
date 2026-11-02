@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Core, toolDefinitions } from "./core.mjs";
 import { voices, synthesise, recognise } from "./voice.mjs";
 import { inspectImage } from "./vision.mjs";
-import { ValidationTracker } from "./validation.mjs";
+import { ValidationTracker,validToolArguments } from "./validation.mjs";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const core = new Core(process.env.DYANARI_DATA || path.join(root, "data"));
 const memory = new MemoryEngine(core);
@@ -59,8 +59,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/health")
       return send(res, {
         app: "dyanari",
-        busy,
-        version: "0.6.0",
+        busy:busy||core.agentTasks.running,
+        version: "0.7.0",
         desktop: process.env.DYANARI_DESKTOP === "1",
       });
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -91,6 +91,7 @@ const server = http.createServer(async (req, res) => {
     if (req.headers["x-dyanari-token"] !== token)
       return send(res, { error: "Authentication required" }, 403);
     const b = req.method === "POST" ? await json(req,url.pathname==='/api/restore'?32*1024*1024:1000000) : {};
+    if(req.method==='GET'&&url.pathname==='/api/tasks/state')return send(res,core.agentTasks.state());
     if (req.method === "GET" && url.pathname === "/api/state") {
       let models = [],
         running = [],
@@ -105,7 +106,7 @@ const server = http.createServer(async (req, res) => {
         models,
         running,
         health,
-        busy,
+        busy:busy||core.agentTasks.running,
         operations: core.files.history(),
         pendingActions: [...core.files.pending.values()].filter(
           (v) => v.expires > Date.now(),
@@ -120,6 +121,7 @@ const server = http.createServer(async (req, res) => {
         memories: core.memories(),
         memory: memory.status(),
         memoryReview:{categories:memoryCategories,suggestions:core.memoryLedger.suggestions(),merges:core.memoryLedger.history()},
+        projectTasks:core.agentTasks.state(),
         actions: core.actions.state(),
         development: core.development.state(),
         linkedProjects: core.linkedProjects.state(),
@@ -157,19 +159,27 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/notifications")
       return send(res, core.scheduler.notifications());
     if (req.method !== "POST") return send(res, { error: "Not found" }, 404);
+    if(url.pathname==='/api/tasks/create'){const id=core.agentTasks.create(b);return send(res,{id})}
+    if(url.pathname==='/api/tasks/control'){
+      if(b.action==='resume')core.agentTasks.resume(b.id);
+      else if(b.action==='pause')core.agentTasks.pause(b.id);
+      else if(b.action==='stop')core.agentTasks.pause(b.id,true);
+      else if(b.action==='remove'){if(b.approved!==true)throw Error('Explicit task record removal approval required');core.agentTasks.remove(b.id)}
+      else throw Error('Unknown task control');return send(res,core.agentTasks.state());
+    }
     if(url.pathname==='/api/linked-projects/confirm'){
       if(b.approved!==true)throw Error('Explicit linked project approval required');
       const c=new AbortController();core.controllers.add(c);
       try{return send(res,await core.linkedProjects.confirm(b.id,c.signal))}finally{core.controllers.delete(c)}
     }
-    if(url.pathname==='/api/linked-projects/reject'){core.linkedProjects.pending.delete(b.id);return send(res,{rejected:b.id})}
+    if(url.pathname==='/api/linked-projects/reject'){core.agentTasks.rejected('linked',b.id);core.linkedProjects.pending.delete(b.id);return send(res,{rejected:b.id})}
     if (url.pathname === '/api/development/confirm') {
       if (b.approved !== true) throw Error('Explicit development approval required');
       const c = new AbortController(); core.controllers.add(c);
       try { return send(res, await core.development.confirm(b.id,c.signal)); }
       finally { core.controllers.delete(c); }
     }
-    if (url.pathname === '/api/development/reject') { core.development.pending.delete(b.id); return send(res,{rejected:b.id}); }
+    if (url.pathname === '/api/development/reject') { core.agentTasks.rejected('development',b.id);core.development.pending.delete(b.id); return send(res,{rejected:b.id}); }
     if (url.pathname === '/api/development/account') {
       const c = new AbortController(); core.controllers.add(c);
       try { return send(res,await core.development.github('/user','GET',null,c.signal)); }
@@ -213,9 +223,10 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/creative/start")
       return send(res, await core.creative.start());
     if (url.pathname === "/api/creative/generate") {
-      if (busy) throw Error("Another model task is active");
+      if (busy||core.agentTasks.running) throw Error("Another model task is active");
       const release = core.resources.acquire("image generation");
       busy = true;
+      core.modelBusy=true;
       const c = new AbortController();
       core.controllers.add(c);
       const timer = setTimeout(() => c.abort(), 600000);
@@ -225,6 +236,7 @@ const server = http.createServer(async (req, res) => {
         clearTimeout(timer);
         core.controllers.delete(c);
         busy = false;
+        core.modelBusy=false;
         release();
       }
     }
@@ -251,9 +263,10 @@ const server = http.createServer(async (req, res) => {
       return send(res, { acknowledged: true });
     }
     if (url.pathname === "/api/vision") {
-      if (busy) throw Error("Another model task is active");
+      if (busy||core.agentTasks.running) throw Error("Another model task is active");
       const release = core.resources.acquire("vision");
       busy = true;
+      core.modelBusy=true;
       const c = new AbortController();
       core.controllers.add(c);
       const timer = setTimeout(() => c.abort(), 120000);
@@ -263,6 +276,7 @@ const server = http.createServer(async (req, res) => {
         clearTimeout(timer);
         core.controllers.delete(c);
         busy = false;
+        core.modelBusy=false;
         release();
       }
     }
@@ -291,6 +305,7 @@ const server = http.createServer(async (req, res) => {
       core.development.cancel();
       core.linkedProjects.stopAll();
       core.memoryLedger.merges.clear();
+      core.agentTasks.pauseAll('Stop all tasks requested');
       return send(res, { stopped: true });
     }
     if (url.pathname === "/api/memory") {
@@ -420,6 +435,7 @@ const server = http.createServer(async (req, res) => {
         linkedProjectsEnabled: false,
         linkedProjects: [],
         memorySuggestionsEnabled: false,
+        agentTasksEnabled: false,
         computerMode: "observe",
         approvedApps: [],
         approvedWorkflows: [],
@@ -451,11 +467,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (url.pathname === "/api/chat") {
-      if (busy) throw Error("Another conversation is active");
+      if (busy||core.agentTasks.running) throw Error("Another conversation or project task is active");
       if (typeof b.text !== "string" || !b.text.trim() || b.text.length > 20000)
         throw Error("Message must contain 1–20000 characters");
       const release = core.resources.acquire("conversation");
       busy = true;
+      core.modelBusy=true;
       const c = new AbortController();
       core.controllers.add(c);
       const timeout = setTimeout(() => c.abort(), 180000);
@@ -578,14 +595,7 @@ const server = http.createServer(async (req, res) => {
               const def = available.find((t) => t.function.name === name)
                 .function.parameters;
               const args = call.function.arguments;
-              if (
-                !args ||
-                typeof args !== "object" ||
-                Object.keys(args).some((k) => !(k in def.properties)) ||
-                def.required.some(
-                  (k) => typeof args[k] !== def.properties[k].type,
-                )
-              )
+              if (!validToolArguments(def,args))
                 throw Error("Tool schema validation failed");
               result = await core.tool(name, args, c.signal);
             } catch (e) {
@@ -616,6 +626,7 @@ const server = http.createServer(async (req, res) => {
         clearTimeout(timeout);
         core.controllers.delete(c);
         busy = false;
+        core.modelBusy=false;
         release();
         res.end();
       }

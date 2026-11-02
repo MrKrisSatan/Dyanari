@@ -1,6 +1,6 @@
 # Dyanari Windows installer
 
-Run `DyanariSetup-0.6.0.exe` from the outputs folder. This is a per-user Windows x64 bootstrap installer, requiring Windows 10 build 19041 or newer, internet for dependencies, and at least 8 GB RAM for the smallest useful model. It does not require separately installed Node.js or .NET. Linux, macOS and ARM64 are not supported by this build. The installer is unsigned.
+Run `DyanariSetup-0.7.0.exe` from the outputs folder. This is a per-user Windows x64 bootstrap installer, requiring Windows 10 build 19041 or newer, internet for dependencies, and at least 8 GB RAM for the smallest useful model. It does not require separately installed Node.js or .NET. Linux, macOS and ARM64 are not supported by this build. The installer is unsigned.
 
 Setup detects physical RAM and NVIDIA VRAM, selects a conservative Q4_K_M model, shows download sizes, and lets you select another model or install the application only. Non-NVIDIA systems use the smallest recommendation and Ollama's CPU fallback; AMD/Intel GPU acceleration has not been validated. Hardware recommendations are estimates at 4096 context, not performance guarantees.
 
@@ -32,7 +32,7 @@ Run setup again to repair the app or add a different catalog model. Uninstall th
 
 Build: first `build-desktop.ps1 -Dotnet <SDK10 path>`, then `build-installer.ps1 -Dotnet <SDK10 path>`. Close a running portable executable before replacing it; the installer embeds the fresh `desktop/publish/Dyanari.exe` build.
 
-Validation: `DyanariSetup-0.6.0.exe --self-test` extracts the actual packaged payload and checks hardware tiers, all three model records, archive traversal rejection, corrupt-hash rejection and embedded executable presence. It writes `installer-self-test.json` beside the installer. This is not a substitute for a clean-machine installation test. Diagnostic log: `%LOCALAPPDATA%\Dyanari\setup-last.log`.
+Validation: `DyanariSetup-0.7.0.exe --self-test` extracts the actual packaged payload and checks hardware tiers, all three model records, archive traversal rejection, corrupt-hash rejection and embedded executable presence. It writes `installer-self-test.json` beside the installer. This is not a substitute for a clean-machine installation test. Diagnostic log: `%LOCALAPPDATA%\Dyanari\setup-last.log`.
 
 Verified in this build: all 43 existing application tests, desktop payload extraction, 11 packaged installer checks, and an isolated application-only staging install that verified/extracted the real Ollama archive, copied the app and wrote installation configuration. The staged Ollama executable reported version 0.40.13. Model downloads/imports, WebView2 installation, shortcut/uninstall registration and first launch on a fresh Windows machine still need end-to-end acceptance testing. Staging deliberately skips system registration, shared dependency installation and app launch.
 
@@ -44,3 +44,6 @@ Version 0.5.0 adds linked local MCP projects and an official Node 24.22.1 distri
 
 
 Version 0.6.0 adds additive memory metadata, optional reviewable suggestions, reversible consolidation and encrypted metadata backups. Existing memory ids, facts and scopes are preserved; no memory table is rebuilt. See [RELEASE-0.6.md](RELEASE-0.6.md).
+
+
+Version 0.7.0 adds persistent project tasks and an evidence-backed TODO/agent handoff. Existing memory and chat remain model-independent; no project task resumes automatically after restart. See [RELEASE-0.7.md](RELEASE-0.7.md).

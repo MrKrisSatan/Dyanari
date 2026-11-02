@@ -91,6 +91,9 @@ async function refresh(history = false) {
   renderDevelopment(s,state.development);
   renderLinkedProjects(s,state.linkedProjects);
   renderMemoryReview(s,state.memoryReview);
+  $('agentTasksEnabled').checked=!!s.agentTasksEnabled;
+  const chosenRecipe=$('agentTaskRequiredRecipe').value;$('agentTaskRequiredRecipe').replaceChildren();for(const r of [{id:'',name:'None selected'},...s.projectRecipes]){const o=document.createElement('option');o.value=r.id;o.textContent=r.name;$('agentTaskRequiredRecipe').append(o)}if([...$('agentTaskRequiredRecipe').options].some(o=>o.value===chosenRecipe))$('agentTaskRequiredRecipe').value=chosenRecipe;
+  renderAgentTasks(state.projectTasks);
   $("quietStart").value = s.quietStart;
   $("quietEnd").value = s.quietEnd;
   $("modelSelect").replaceChildren();
@@ -987,3 +990,21 @@ $('suggestRecentMemories').onclick=()=>safe(async()=>{const result=await api('me
 $('findMemoryDuplicates').onclick=()=>safe(async()=>{const pairs=await api('memory/review',{action:'duplicates'});$('memoryDuplicates').replaceChildren();if(!pairs.length)card($('memoryDuplicates'),'No related wording found in the bounded scan.');for(const pair of pairs)card($('memoryDuplicates'),(pair.project||'Global')+' · Similar wording, not necessarily the same fact\n'+pair.contents.join('\n---\n'),[['Preview consolidation',async()=>{const content=prompt('Enter the corrected consolidated fact. Check for contradictions first.',pair.contents[0]);if(!content)return;const category=prompt('Memory category', 'general');if(!category)return;const preview=await api('memory/review',{action:'preview-merge',ids:pair.ids,content,category});if(!confirm('Replace these memories?\n\n'+preview.before.map(m=>m.content).join('\n')+'\n\nWith:\n'+preview.after.content+'\nProject: '+(preview.after.project||'global')))return;await api('memory/review',{action:'confirm-merge',id:preview.id,approved:true});$('memoryDuplicates').replaceChildren();await refresh()}]])});
 $('clearMemoryMergeHistory').onclick=()=>safe(async()=>{if(!confirm('Permanently remove consolidation recovery copies? Saved memories remain, but these merges cannot be undone.'))return;await api('memory/review',{action:'clear-merge-history',approved:true});await refresh()});
 $('exportMemories').onclick=()=>safe(async()=>{const data=await api('memory/export');const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='dyanari-memories.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+
+let agentTaskPoll=null;
+function renderAgentTasks(tasks){
+ $('agentTaskList').replaceChildren();
+ for(const t of tasks?.tasks||[]){
+  const actions=[];
+  if(['paused','ready','needs_attention','stopped'].includes(t.status))actions.push(['Resume original task',async()=>{await api('tasks/control',{action:'resume',id:t.id});await refresh()}]);
+  if(['queued','running','waiting_approval','executing','ready'].includes(t.status))actions.push(['Pause',async()=>{await api('tasks/control',{action:'pause',id:t.id});await refresh()}],['Stop task',async()=>{await api('tasks/control',{action:'stop',id:t.id});await refresh()}]);
+  if(['finished','stopped','paused','needs_attention'].includes(t.status))actions.push(['Remove record',async()=>{if(!confirm('Remove this saved task record? This does not undo file changes, executed commands or GitHub writes.'))return;await api('tasks/control',{action:'remove',id:t.id,approved:true});await refresh()}]);
+  const box=document.createElement('div');$('agentTaskList').append(box);
+  card(box,t.status.toUpperCase()+' · '+t.mode+' · '+t.steps+'/24 model turns\n'+t.workspace+'\nOriginal request: '+t.request+'\nRequired recipe: '+(t.requiredRecipeId||'none')+'\n'+t.note+'\nVerified operation/check results: '+JSON.stringify(t.checks),actions);
+  const detail=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');summary.textContent='Recent task events';pre.textContent=(t.events||[]).map(e=>e.time+' · '+e.type+'\n'+e.text).join('\n\n');detail.append(summary,pre);box.append(detail);
+ }
+ if((tasks?.tasks||[]).some(t=>['queued','running','waiting_approval','executing','ready'].includes(t.status))){if(!agentTaskPoll)agentTaskPoll=setInterval(()=>safe(async()=>renderAgentTasks(await api('tasks/state'))),1500)}else if(agentTaskPoll){clearInterval(agentTaskPoll);agentTaskPoll=null}
+}
+$('agentTasksEnabled').onchange=()=>safe(()=>updateSettings({agentTasksEnabled:$('agentTasksEnabled').checked}));
+$('createAgentTask').onclick=()=>safe(async()=>{await api('tasks/create',{request:$('agentTaskRequest').value,workspace:$('agentTaskWorkspace').value,mode:$('agentTaskMode').value,autoContinue:$('agentTaskAutoContinue').checked,requiredRecipeId:$('agentTaskRequiredRecipe').value});notice('Project task queued. Execution previews require your approval.');await refresh()});
+$('refreshAgentTasks').onclick=()=>safe(async()=>renderAgentTasks(await api('tasks/state')));

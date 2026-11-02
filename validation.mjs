@@ -1,4 +1,8 @@
 // Application feedback may request continuation but never grants a capability.
+export function validToolArguments(schema,args){
+ if(!args||typeof args!=='object'||Array.isArray(args)||schema.required.some(k=>!Object.hasOwn(args,k))||Object.keys(args).some(k=>!Object.hasOwn(schema.properties,k)))return false;
+ return Object.entries(args).every(([key,value])=>{const p=schema.properties[key];if(p.type==='array')return Array.isArray(value)&&value.length<=1000&&(!p.items||value.every(v=>typeof v===p.items.type));if(p.type==='object')return value!==null&&typeof value==='object'&&!Array.isArray(value);if(p.type==='number')return typeof value==='number'&&Number.isFinite(value);return typeof value===p.type});
+}
 export class ValidationTracker {
   constructor(request) {
     this.repair =

@@ -11,8 +11,10 @@ jobs:
         with:
           node-version: '24'
       - name: Tests without inference services
-        run: node --test development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs validation.test.mjs
+        run: node --test agent-tasks.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs validation.test.mjs
       - name: Development API acceptance
         run: node development-http-integration.mjs
       - name: Memory API acceptance
         run: node memory-http-integration.mjs
+      - name: Project task API acceptance
+        run: node agent-tasks-http-integration.mjs
