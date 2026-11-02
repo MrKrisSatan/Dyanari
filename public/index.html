@@ -17,6 +17,7 @@
         ><button data-tab="tools">Tools & permissions</button
         ><button data-tab="actions">Computer & checks</button
         ><button data-tab="development">Development</button
+        ><button data-tab="project-tasks">Project tasks</button
         ><button data-tab="linked-projects">Linked projects</button
         ><button data-tab="models">Models</button
         ><button data-tab="personality">Personality</button
@@ -498,6 +499,19 @@
         </div>
         <div class="card"><h3>Pending execution approvals</h3><div id="linkedProjectApprovals"></div></div>
         <div class="card"><h3>Recent results</h3><button id="refreshLinkedProjects">Refresh progress</button><div id="linkedProjectRuns"></div></div>
+      </section>
+      <section id="project-tasks" class="page hidden">
+        <h2>Persistent project tasks</h2>
+        <label><input id="agentTasksEnabled" type="checkbox" /> Enable project tasks</label>
+        <p>Requires Tools, Read Files and Run Tools. Tasks retain your original request and tool results separately from chat. These are persistent work records, not private conversations. Existing file/execution/GitHub/MCP permissions still apply.</p>
+        <label>Selected writable workspace<input id="agentTaskWorkspace" placeholder="C:\Projects\MyApp" /></label>
+        <label>Task mode<select id="agentTaskMode"><option value="code">Code & tests</option><option value="github">Git & GitHub</option><option value="mcp">Linked MCP projects</option></select></label>
+        <label>Original request<textarea id="agentTaskRequest" placeholder="Inspect the project, repair the bug, run my saved test recipe, and prepare a commit."></textarea></label>
+        <label>Required verification recipe (optional)<select id="agentTaskRequiredRecipe"><option value="">None selected</option></select></label>
+        <label><input id="agentTaskAutoContinue" type="checkbox" checked /> Continue the original task after I approve each operation</label>
+        <p>Execution approvals remain in Development or Linked projects. A task never approves its own commands or writes. Stop, restart or settings changes pause work; inspect partial results before resuming. “Finished” means the model ended its turn, not independent proof of correctness.</p>
+        <button id="createAgentTask">Start project task</button><button id="refreshAgentTasks">Refresh progress</button>
+        <div id="agentTaskList"></div>
       </section>
       <div id="notice" role="status"></div>
     </main>

@@ -200,6 +200,8 @@ export class DevelopmentEngine {
   if(!p||p.expires<Date.now())throw Error('Approval missing, expired or already used');
   this.require(p.name);if(this.running)throw Error('Another development operation is active');
   this.running=true;let release;
+  const operation=new AbortController();signal=signal?AbortSignal.any([signal,operation.signal]):operation.signal;
+  this.core.agentTasks?.approvalStarted('development',id,()=>operation.abort());let outcome;
   const run={id:crypto.randomUUID(),name:p.name,summary:p.summary,started:new Date().toISOString(),status:'running',output:''};
   const save=()=>this.core.db.prepare('INSERT OR REPLACE INTO development_runs VALUES(?,?)').run(run.id,JSON.stringify(run));
   try{
@@ -227,9 +229,9 @@ export class DevelopmentEngine {
     const body=p.name==='github_create_pull_request'?{title:a.title,body:a.body,head:a.head,base:a.base}:p.name==='github_create_issue'?{title:a.title,body:a.body}:{body:a.body};
     result=await this.github(endpoint,'POST',body,signal);
    }
-   run.status=result.passed===false?'failed':'passed';run.result=result;if(p.name!=='run_project_recipe')run.output=redact(((result.stdout||'')+(result.stderr||'')).slice(-100000));return result;
-  }catch(e){run.status=signal?.aborted?'cancelled':'failed';run.error=redact(e.message);throw e}
-  finally{run.finished=new Date().toISOString();save();this.core.log('development-result',JSON.stringify({id:run.id,name:run.name,status:run.status,error:run.error}));release?.();this.running=false}
+   run.status=result.passed===false?'failed':'passed';run.result=result;if(p.name!=='run_project_recipe')run.output=redact(((result.stdout||'')+(result.stderr||'')).slice(-100000));outcome=result;return result;
+  }catch(e){run.status=signal?.aborted?'cancelled':'failed';run.error=redact(e.message);outcome={error:run.error};throw e}
+  finally{run.finished=new Date().toISOString();save();this.core.log('development-result',JSON.stringify({id:run.id,name:run.name,status:run.status,error:run.error}));release?.();this.running=false;try{this.core.agentTasks?.afterApproval('development',id,outcome||{error:'Unknown execution outcome; inspect state'})}catch(e){this.core.log('task-error',e.message)}}
  }
  async credential(signal) {
   // Credential-helper response remains in memory and is never returned to the model, logs or settings.

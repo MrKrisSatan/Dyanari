@@ -10,6 +10,7 @@ import { ResourceManager } from "./resources.mjs";
 import { DevelopmentEngine, developmentDefinitions } from "./development.mjs";
 import { LinkedProjectEngine, linkedProjectDefinitions } from './linked-projects.mjs';
 import { MemoryLedger } from './memory-ledger.mjs';
+import { AgentTasks } from './agent-tasks.mjs';
 import {
   ActionEngine,
   actionDefinitions,
@@ -41,6 +42,7 @@ export const defaults = {
   linkedProjectsEnabled: false,
   linkedProjects: [],
   memorySuggestionsEnabled: false,
+  agentTasksEnabled: false,
   computerMode: "observe",
   approvedApps: [],
   approvedWorkflows: [],
@@ -92,6 +94,7 @@ export class Core {
     this.development = new DevelopmentEngine(this);
     this.linkedProjects = new LinkedProjectEngine(this);
     this.memoryLedger = new MemoryLedger(this);
+    this.agentTasks = new AgentTasks(this,()=>toolDefinitions);
   }
   log(kind, detail) {
     this.db
@@ -155,6 +158,7 @@ export class Core {
       this.development?.cancel();
       this.linkedProjects?.cancel();
       this.memoryLedger?.merges.clear();
+      this.agentTasks?.pauseAll('Settings changed in another instance');
     }
     return this._settings;
   }
@@ -182,6 +186,7 @@ export class Core {
       "development",
       "linkedProjectsEnabled",
       "memorySuggestionsEnabled",
+      "agentTasksEnabled",
     ])
       if (typeof s[k] !== "boolean") throw Error("Invalid " + k);
     if (!["observe", "assist", "autonomous"].includes(s.computerMode))
@@ -221,11 +226,12 @@ export class Core {
     )
       throw Error("Invalid trusted domains");
     if (!Array.isArray(s.workspaces)) throw Error("Invalid workspaces");
+    const newWorkspaces=Object.hasOwn(v,'workspaces');
     s.workspaces = s.workspaces.map((w) => {
-      if (typeof w.path !== "string" || typeof w.write !== "boolean")
+      if (typeof w.path !== "string" || !path.isAbsolute(w.path) || typeof w.write !== "boolean")
         throw Error("Invalid workspace");
-      const p = fs.realpathSync(w.path);
-      if (!fs.statSync(p).isDirectory() || this.sensitive(p))
+      const p = newWorkspaces?fs.realpathSync(w.path):path.resolve(w.path);
+      if ((newWorkspaces&&!fs.statSync(p).isDirectory()) || this.sensitive(p))
         throw Error("Protected workspace");
       return { path: p, write: w.write };
     });
@@ -240,7 +246,8 @@ export class Core {
       if (typeof r.name !== 'string' || !r.name.trim() || r.name.length > 120 || !['node','npm','dotnet','python'].includes(r.tool)) throw Error('Invalid recipe name/tool');
       if (!Array.isArray(r.args) || r.args.length > 100 || r.args.some(a => typeof a !== 'string' || a.length > 8000 || a.includes('\0'))) throw Error('Recipe arguments must be a JSON array of strings');
       if (!Number.isInteger(r.timeoutSeconds) || r.timeoutSeconds < 1 || r.timeoutSeconds > 1200) throw Error('Recipe timeout must be 1–1200 seconds');
-      const p = fs.realpathSync(r.path);
+      if(typeof r.path!=='string'||!path.isAbsolute(r.path))throw Error('Recipe path must be absolute');
+      const p = Object.hasOwn(v,'projectRecipes')||newWorkspaces?fs.realpathSync(r.path):path.resolve(r.path);
       if (this.sensitive(p) || !s.workspaces.some(w => w.write && this.inside(w.path,p))) throw Error('Recipe must be in an approved writable workspace');
       return {id:r.id,name:r.name,path:p,tool:r.tool,args:r.args,timeoutSeconds:r.timeoutSeconds};
     });
@@ -250,6 +257,7 @@ export class Core {
     s.linkedProjects=s.linkedProjects.map(p=>{
       if(!p||typeof p.id!=='string'||!/^[\w-]{1,80}$/.test(p.id)||projectIds.has(p.id)||!['rea','local'].includes(p.kind))throw Error('Invalid linked project id/kind');projectIds.add(p.id);
       if(typeof p.name!=='string'||!p.name.trim()||p.name.length>120||!Number.isInteger(p.timeoutSeconds)||p.timeoutSeconds<1||p.timeoutSeconds>1200)throw Error('Invalid project name or timeout');
+      if(!Object.hasOwn(v,'linkedProjects')&&!newWorkspaces)return structuredClone(p);
       if(!Object.hasOwn(v,'linkedProjects')&&(!s.linkedProjectsEnabled||!s.tools||!s.runTools||!s.read))return structuredClone(p);
       const root=fs.realpathSync(p.path);if(this.sensitive(root)||!s.workspaces.some(w=>w.write&&this.inside(w.path,root))||!fs.statSync(root).isDirectory())throw Error('Linked project needs an approved writable workspace');
       if(!Array.isArray(p.approvedTools)||p.approvedTools.length>2000||p.approvedTools.some(t=>typeof t!=='string'||!t.length||t.length>250||/[\s\0]/.test(t)))throw Error('Invalid approved MCP tool names');
@@ -269,6 +277,7 @@ export class Core {
     this.linkedProjects?.pending.clear();
     this.linkedProjects?.reconcile();
     this.memoryLedger?.merges.clear();
+    this.agentTasks?.pauseAll('Settings changed; explicitly resume if still authorised');
     this.log("permissions", "Settings changed; active tasks cancelled");
     return s;
   }

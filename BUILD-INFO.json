@@ -1,9 +1,9 @@
 {
-  "version": "0.6.0",
-  "sha256": "1C0175DF4B6A86A36F8EDA7765DD736E4CD6EFE7DEE2449E60E49932221022A8",
-  "bytes": 158080155,
-  "sourceCommit": "d68b2ede8cb1504c249bdcb4710d855a58a07bc5",
-  "automatedTests": 77,
+  "version": "0.7.0",
+  "sha256": "B35627CCC1E110C1B6212927423A9F0BA48204B1E93347BBFB12FD4A0EF75107",
+  "bytes": 158087835,
+  "sourceCommit": "2e22e7b791132cb1deacc94acbf70fce3c3fc9c0",
+  "automatedTests": 90,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -19,9 +19,9 @@
     "freshMachine": "not yet verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.6.0.exe",
-    "sha256": "A0FD93C9733564C9F764E62FB42CAE09E03E87370087592B35CE1F62ED31184F",
-    "bytes": 209764372
+    "file": "DyanariSetup-0.7.0.exe",
+    "sha256": "81152D84CEE1BB325486BF1475C050F1D85DCE60C480620B79DB475C251A4384",
+    "bytes": 209772052
   },
   "development": {
     "actualProjectTests": 7,
@@ -50,5 +50,14 @@
     "desktopUi": "verified: memory categories, suggestions, recovery and export controls",
     "httpAcceptance": "passed: review, private omission, merge/undo, search/export, metadata backup and large Unicode restore",
     "unitTests": 14
+  },
+  "projectTasks": {
+    "realModel": "passed: Qwen3 4B Instruct, exact approval, actual command marker and automatic continuation",
+    "tracker": "TODO.md, AGENTS.md, DEVELOPMENT.md",
+    "nextReady": "REL-01 with clean VM; otherwise DOC-01",
+    "nativeUi": "verified: task mode, workspace, original request, required verification and default OFF controls",
+    "unitTests": 13,
+    "recovery": "restart and revocation pause; no mutation replay",
+    "httpAcceptance": "passed: original intent, real command, post-approval continuation, private rejection, Stop and restore"
   }
 }

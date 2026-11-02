@@ -105,7 +105,7 @@ export class LinkedProjectEngine {
  state(){return {reaPackage,projects:this.core.settings.linkedProjects.map(p=>{const c=this.clients.get(p.id);return {...p,installed:p.kind==='rea'?this.installed():true,connected:Boolean(c?.alive),toolCount:c?.tools.length||0,serverInfo:c?.serverInfo,log:c?.log||''}}),pending:[...this.pending.values()].filter(p=>p.expires>Date.now()).map(({id,summary,expires})=>({id,summary,expires})),runs:this.core.db.prepare('SELECT value FROM linked_project_runs ORDER BY rowid DESC LIMIT 12').all().map(r=>JSON.parse(r.value))}}
  reconcile(){
   const s=this.core.settings;
-  for(const [id,c]of this.clients){const p=s.linkedProjects.find(p=>p.id===id);if(!s.tools||!s.runTools||!s.read||!s.linkedProjectsEnabled||!p||signature(p)!==c.signature||!s.workspaces.some(w=>w.write&&this.core.inside(w.path,p.path)))this.stop(id)}
+  for(const [id,c]of this.clients){const p=s.linkedProjects.find(p=>p.id===id);let valid=false;try{if(p){this.core.resolve(p.path,true);valid=true}}catch{};if(!s.tools||!s.runTools||!s.read||!s.linkedProjectsEnabled||!p||!valid||signature(p)!==c.signature||!s.workspaces.some(w=>w.write&&this.core.inside(w.path,p.path)))this.stop(id)}
  }
  cancel(){this.pending.clear();this.reconcile()}
  stop(id){const c=this.clients.get(id);if(c){c.stop();clearInterval(c.monitor);c.release?.();this.clients.delete(id)}for(const [key,p]of this.pending)if(p.profile.id===id)this.pending.delete(key);return {stopped:id}}
@@ -114,8 +114,8 @@ export class LinkedProjectEngine {
   this.require();
   if(name==='list_linked_projects')return this.state().projects.map(({log,...p})=>p);
   if(name==='list_linked_project_runs')return this.state().runs;
+  if(name==='stop_linked_project'){if(!this.core.settings.linkedProjects.some(p=>p.id===args.id))throw Error('Linked project not approved');return this.stop(args.id)}
   const profile=this.profile(args.id);
-  if(name==='stop_linked_project')return this.stop(args.id);
   if(name==='list_linked_project_tools'){
    const c=this.clients.get(args.id);if(!c?.alive)throw Error('Start this linked project first');if(c.stale)await c.discover(signal);
    const query=typeof args.query==='string'?args.query.toLowerCase():'';const tools=c.tools.filter(t=>(t.name+' '+(t.description||'')).toLowerCase().includes(query));
@@ -143,6 +143,8 @@ export class LinkedProjectEngine {
  async confirm(id,signal){
   const p=this.pending.get(id);this.pending.delete(id);if(!p||p.expires<Date.now())throw Error('Approval missing, expired or already used');this.require();const current=this.profile(p.profile.id);if(JSON.stringify(current)!==JSON.stringify(p.profile))throw Error('Project configuration changed');
   if(this.busy.has(current.id))throw Error('Another operation is active for this project');this.busy.add(current.id);
+  const operation=new AbortController();signal=signal?AbortSignal.any([signal,operation.signal]):operation.signal;
+  this.core.agentTasks?.approvalStarted('linked',id,()=>operation.abort());let outcome;
   const run={id:crypto.randomUUID(),project:current.id,operation:p.name,tool:p.tool,started:new Date().toISOString(),status:'running',output:''};
   const save=()=>this.core.db.prepare('INSERT OR REPLACE INTO linked_project_runs VALUES(?,?)').run(run.id,JSON.stringify(run));save();
   try{
@@ -164,8 +166,8 @@ export class LinkedProjectEngine {
     const c=this.clients.get(current.id);if(!c?.alive||c.session!==p.session||c.stale||!current.approvedTools.includes(p.tool))throw Error('Tool access or server session changed; request a fresh preview');
     const response=await c.request('tools/call',{name:p.tool,arguments:p.arguments},signal,current.timeoutSeconds*1000);result={passed:response?.isError!==true,isError:response?.isError===true,result:compact(response)};
    }
-   run.status=result.passed===false?'failed':'passed';run.result=result;return result;
-  }catch(e){run.status=signal?.aborted?'cancelled':'failed';run.error=redact(e.message);throw e}
-  finally{run.finished=new Date().toISOString();save();this.busy.delete(current.id);this.core.log('linked-project-result',JSON.stringify({id:run.id,project:run.project,status:run.status,error:run.error}))}
+   run.status=result.passed===false?'failed':'passed';run.result=result;outcome=result;return result;
+  }catch(e){run.status=signal?.aborted?'cancelled':'failed';run.error=redact(e.message);outcome={error:run.error};throw e}
+  finally{run.finished=new Date().toISOString();save();this.busy.delete(current.id);this.core.log('linked-project-result',JSON.stringify({id:run.id,project:run.project,status:run.status,error:run.error}));try{this.core.agentTasks?.afterApproval('linked',id,outcome||{error:'Unknown execution outcome; inspect state'})}catch(e){this.core.log('task-error',e.message)}}
  }
 }
