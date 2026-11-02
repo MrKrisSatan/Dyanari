@@ -1,0 +1,15 @@
+data/
+runtime/
+*.log
+.dyanari-test-*/
+desktop/bin/
+desktop/obj/
+desktop/publish/
+desktop/app-payload.zip
+Dyanari.exe
+desktop-self-test.json
+action-helper/bin/
+action-helper/obj/
+installer/bin/
+installer/obj/
+installer/publish/

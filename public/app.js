@@ -1,0 +1,901 @@
+const $ = (id) => document.getElementById(id),
+  token = document.querySelector("meta[name=token]").content;
+let state,
+  privateHistory = [],
+  lastPrivate = false;
+function notice(t) {
+  $("notice").textContent = t;
+}
+async function api(route, body) {
+  const r = await fetch("/api/" + route, {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json", "X-Dyanari-Token": token },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const v = await r.json();
+  if (v.error) throw Error(v.error);
+  return v;
+}
+function card(parent, text, actions = []) {
+  const d = document.createElement("div");
+  d.className = "card";
+  const p = document.createElement("div");
+  p.textContent = text;
+  d.append(p);
+  for (const [label, fn] of actions) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = () => safe(fn);
+    d.append(b);
+  }
+  parent.append(d);
+}
+function message(role, text) {
+  const d = document.createElement("div");
+  d.className = "message " + role;
+  const label = document.createElement("small");
+  label.textContent = role === "user" ? "YOU" : "DYANARI";
+  const body = document.createElement("div");
+  body.textContent = text;
+  d.append(label, body);
+  $("messages").append(d);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return body;
+}
+async function safe(fn) {
+  try {
+    await fn();
+  } catch (e) {
+    notice(e.message);
+  }
+}
+async function updateSettings(v) {
+  await api("settings", v);
+  await refresh(false);
+  notice("Settings saved. Active tasks cancelled.");
+}
+async function refresh(history = false) {
+  state = await api("state");
+  const s = state.settings;
+  $("internet").checked = s.internet;
+  $("toolsEnabled").checked = s.tools;
+  $("internetLabel").textContent = s.internet ? "ON" : "OFF";
+  $("toolsLabel").textContent = s.tools ? "ON" : "OFF";
+  $("health").textContent = state.health
+    ? "● Local inference connected"
+    : "○ Ollama unavailable";
+  $("modelLabel").textContent = s.model;
+  $("sharedMemoryStatus").textContent =
+    "Shared across all models: " +
+    (state.memory?.savedMemories ?? 0) +
+    " saved memories · " +
+    (state.memory?.storedMessages ?? 0) +
+    " stored messages. Changing models preserves identity and memory.";
+  $("personalityText").value = s.personality;
+  $("context").value = s.context;
+  $("temperature").value = s.temperature;
+  $("domains").value = s.domains.join(", ");
+  $("activeProject").value = s.activeProject || "";
+  $("microphoneEnabled").checked = !!s.microphone;
+  $("proactiveEnabled").checked = !!s.proactive;
+  $("proactiveLabel").textContent = s.proactive ? "ON" : "OFF";
+  $("microphoneMain").checked = !!s.microphone;
+  $("microphoneLabel").textContent = s.microphone ? "ON" : "OFF";
+  $("screenEnabled").checked = !!s.screen;
+  $("screenLabel").textContent = s.screen ? "ON" : "OFF";
+  $("creativeEnabled").checked = !!s.creative;
+  $("speakReplies").checked = !!s.speakReplies;
+  if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
+  renderComputerState(s, state.actions);
+  $("quietStart").value = s.quietStart;
+  $("quietEnd").value = s.quietEnd;
+  $("modelSelect").replaceChildren();
+  for (const name of new Set([
+    s.model,
+    ...state.models
+      .filter((x) => !x.capabilities || x.capabilities.includes("completion"))
+      .map((x) => x.name),
+  ])) {
+    const o = document.createElement("option");
+    o.value = o.textContent = name;
+    o.selected = name === s.model;
+    $("modelSelect").append(o);
+  }
+  $("running").textContent = JSON.stringify(
+    state.running.map((x) => ({
+      model: x.name,
+      VRAM_GB: (x.size_vram / 1e9).toFixed(2),
+      context: x.context_length,
+    })),
+    null,
+    2,
+  );
+  $("details").replaceChildren();
+  for (const k of ["read", "create", "edit", "organise"]) {
+    const l = document.createElement("label"),
+      i = document.createElement("input");
+    i.type = "checkbox";
+    i.checked = s[k];
+    i.onchange = () => safe(() => updateSettings({ [k]: i.checked }));
+    l.append(i, document.createTextNode(k + " files"));
+    $("details").append(l);
+  }
+  $("workspaces").replaceChildren();
+  s.workspaces.forEach((w, i) =>
+    card(
+      $("workspaces"),
+      w.path + " · " + (w.write ? "Read/write" : "Read-only"),
+      [
+        [
+          "Revoke",
+          () =>
+            updateSettings({
+              workspaces: s.workspaces.filter((_, j) => j !== i),
+            }),
+        ],
+      ],
+    ),
+  );
+  renderMemories();
+  $("logs").replaceChildren();
+  state.activity.forEach((a) =>
+    card($("logs"), a.stamp + " · " + a.kind + "\n" + a.detail),
+  );
+  $("revisions").replaceChildren();
+  state.revisions.forEach((v) =>
+    card($("revisions"), v.stamp + " · " + v.file, [
+      [
+        "Restore previous text",
+        async () => {
+          await api("rollback", { id: v.id });
+          notice("Restored previous text");
+          await refresh();
+        },
+      ],
+    ]),
+  );
+  $("pendingActions").replaceChildren();
+  for (const pending of state.pendingActions || [])
+    card($("pendingActions"), "Delete request: " + pending.path, [
+      [
+        "Move to recovery",
+        async () => {
+          if (
+            confirm(
+              "Move this file to Dyanari recovery storage?\n" + pending.path,
+            )
+          ) {
+            await api("confirm-delete", { id: pending.id, approved: true });
+            await refresh();
+          }
+        },
+      ],
+    ]);
+  $("operations").replaceChildren();
+  for (const op of state.operations || [])
+    card(
+      $("operations"),
+      op.stamp +
+        " · " +
+        op.kind +
+        "\n" +
+        op.source +
+        (op.destination ? " → " + op.destination : ""),
+      op.undone
+        ? []
+        : [
+            [
+              "Undo operation",
+              async () => {
+                if (
+                  confirm(
+                    "Undo this " +
+                      op.kind +
+                      " operation? Recovery refuses changed files and occupied paths.",
+                  )
+                ) {
+                  await api("undo-operation", { id: op.id, approved: true });
+                  await refresh();
+                }
+              },
+            ],
+          ],
+    );
+  $("reminders").replaceChildren();
+  for (const r of state.reminders || [])
+    card(
+      $("reminders"),
+      r.text +
+        "\n" +
+        new Date(r.due).toLocaleString() +
+        " · " +
+        (r.enabled ? "Scheduled" : "Inactive"),
+      r.enabled
+        ? [
+            [
+              "Cancel",
+              async () => {
+                await api("reminder", { action: "cancel", id: r.id });
+                await refresh();
+              },
+            ],
+          ]
+        : [],
+    );
+  renderNotifications(state.notifications || []);
+  if (history && !$("private").checked) {
+    $("messages").replaceChildren();
+    for (const m of state.messages) message(m.role, m.content);
+  }
+}
+function renderMemories() {
+  $("memories").replaceChildren();
+  for (const m of state.memories.filter((m) =>
+    m.content.toLowerCase().includes($("memorySearch").value.toLowerCase()),
+  ))
+    card($("memories"), (m.project ? "[" + m.project + "] " : "") + m.content, [
+      [
+        "Edit",
+        async () => {
+          const content = prompt("Correct memory", m.content);
+          if (content) {
+            await api("memory", {
+              action: "edit",
+              id: m.id,
+              content,
+              project: m.project,
+            });
+            await refresh();
+          }
+        },
+      ],
+      [
+        "Delete",
+        async () => {
+          await api("memory", { action: "delete", id: m.id });
+          await refresh();
+        },
+      ],
+    ]);
+}
+document.querySelectorAll("[data-tab]").forEach(
+  (b) =>
+    (b.onclick = () => {
+      document
+        .querySelectorAll(".page")
+        .forEach((p) => p.classList.toggle("hidden", p.id !== b.dataset.tab));
+      document
+        .querySelectorAll("[data-tab]")
+        .forEach((n) => n.classList.toggle("active", n === b));
+      $("title").textContent = b.textContent;
+      safe(() => refresh());
+    }),
+);
+$("internet").onchange = () =>
+  safe(() => updateSettings({ internet: $("internet").checked }));
+$("toolsEnabled").onchange = () =>
+  safe(() => updateSettings({ tools: $("toolsEnabled").checked }));
+$("stop").onclick = () =>
+  safe(async () => {
+    $("speechAudio").pause();
+    await api("stop", {});
+    notice("Cancellation requested");
+  });
+$("chatForm").onsubmit = (e) => {
+  e.preventDefault();
+  safe(async () => {
+    const text = $("input").value.trim();
+    if (!text) return;
+    const priv = $("private").checked;
+    if (priv !== lastPrivate) {
+      $("messages").replaceChildren();
+      privateHistory = [];
+      lastPrivate = priv;
+    }
+    message("user", text);
+    $("input").value = "";
+    $("send").disabled = true;
+    const output = message("assistant", "");
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Dyanari-Token": token,
+        },
+        body: JSON.stringify({ text, private: priv, history: privateHistory }),
+      });
+      if (!r.ok) throw Error((await r.json()).error);
+      const reader = r.body.getReader(),
+        decoder = new TextDecoder();
+      let pending = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        pending += decoder.decode(value, { stream: true });
+        let i;
+        while ((i = pending.indexOf("\n")) >= 0) {
+          const line = pending.slice(0, i);
+          pending = pending.slice(i + 1);
+          if (!line) continue;
+          const v = JSON.parse(line);
+          if (v.token) output.textContent += v.token;
+          if (v.tool)
+            notice(
+              "Tool " + v.tool + ": " + JSON.stringify(v.result).slice(0, 180),
+            );
+          if (v.error) throw Error(v.error);
+          $("messages").scrollTop = $("messages").scrollHeight;
+        }
+      }
+      if (priv)
+        privateHistory.push(
+          { role: "user", content: text },
+          { role: "assistant", content: output.textContent },
+        );
+      notice("Ready");
+      if (state.settings.speakReplies && output.textContent)
+        try {
+          await speak(output.textContent.slice(0, 6000));
+        } catch (e) {
+          notice("Reply ready. Audio: " + e.message);
+        }
+    } catch (e) {
+      output.textContent += "\n[" + e.message + "]";
+    } finally {
+      $("send").disabled = false;
+    }
+  });
+};
+$("private").onchange = () =>
+  safe(async () => {
+    privateHistory = [];
+    lastPrivate = $("private").checked;
+    $("messages").replaceChildren();
+    if (!lastPrivate) await refresh(true);
+    notice(
+      lastPrivate
+        ? "Private conversation started"
+        : "Stored conversation restored",
+    );
+  });
+$("addWorkspace").onclick = () =>
+  safe(() =>
+    updateSettings({
+      workspaces: [
+        ...state.settings.workspaces,
+        { path: $("workspacePath").value, write: $("workspaceWrite").checked },
+      ],
+    }),
+  );
+$("saveDomains").onclick = () =>
+  safe(() =>
+    updateSettings({
+      domains: $("domains")
+        .value.split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    }),
+  );
+$("savePersonality").onclick = () =>
+  safe(() => updateSettings({ personality: $("personalityText").value }));
+$("characterImport").onchange = () =>
+  safe(async () => {
+    $("personalityText").value = await $("characterImport").files[0].text();
+  });
+$("saveModel").onclick = () =>
+  safe(async () => {
+    await updateSettings({
+      model: $("modelSelect").value,
+      context: Number($("context").value),
+      temperature: Number($("temperature").value),
+    });
+    notice(
+      "Model changed. Shared memory, personality and stored conversations are preserved.",
+    );
+  });
+$("refresh").onclick = () => safe(() => refresh());
+$("clearHistory").onclick = () =>
+  safe(async () => {
+    if (confirm("Delete stored conversation history?")) {
+      await api("clear", {});
+      await refresh(true);
+    }
+  });
+$("memorySearch").oninput = renderMemories;
+$("addMemory").onclick = () =>
+  safe(async () => {
+    await api("memory", {
+      content: $("memoryContent").value,
+      project: $("memoryProject").value,
+    });
+    $("memoryContent").value = "";
+    await refresh();
+  });
+$("runTool").onclick = () =>
+  safe(async () => {
+    $("toolResult").textContent = JSON.stringify(
+      await api("tool", {
+        name: $("toolName").value,
+        arguments: JSON.parse($("toolArgs").value),
+      }),
+      null,
+      2,
+    );
+    await refresh();
+  });
+$("backup").onclick = () =>
+  safe(async () => {
+    const v = await api("backup", { password: $("backupPassword").value });
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(v)], { type: "application/json" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dyanari-encrypted-backup.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+$("restore").onclick = () =>
+  safe(async () => {
+    const f = $("restoreFile").files[0];
+    if (!f) throw Error("Choose a backup");
+    await api("restore", {
+      password: $("backupPassword").value,
+      backup: JSON.parse(await f.text()),
+    });
+    await refresh(true);
+    notice("Backup merged. Permissions reset to OFF.");
+  });
+$("download").onclick = () =>
+  safe(async () => {
+    const r = await fetch("/api/pull", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Dyanari-Token": token },
+      body: JSON.stringify({ model: $("downloadModel").value }),
+    });
+    if (!r.ok) throw Error((await r.json()).error);
+    const reader = r.body.getReader(),
+      decoder = new TextDecoder();
+    while (true) {
+      const x = await reader.read();
+      if (x.done) break;
+      $("downloadStatus").textContent = decoder.decode(x.value).slice(-3000);
+    }
+    await refresh();
+  });
+safe(() => refresh(true));
+document.querySelector("[data-tab=chat]").classList.add("active");
+let audioUrl;
+async function speak(text) {
+  const r = await fetch("/api/speak", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Dyanari-Token": token },
+    body: JSON.stringify({ text, voice: $("voiceSelect").value }),
+  });
+  if (!r.ok) throw Error((await r.json()).error);
+  if (audioUrl) URL.revokeObjectURL(audioUrl);
+  audioUrl = URL.createObjectURL(await r.blob());
+  $("speechAudio").src = audioUrl;
+  await $("speechAudio").play();
+}
+$("microphoneEnabled").onchange = () =>
+  safe(async () => {
+    await updateSettings({ microphone: $("microphoneEnabled").checked });
+    $("micStatus").textContent = state.settings.microphone
+      ? "Microphone: ON (idle)"
+      : "Microphone: OFF";
+  });
+$("listen").onclick = () =>
+  safe(async () => {
+    if (!state.settings.microphone)
+      throw Error("Enable Microphone permission first");
+    $("micStatus").textContent = "● Microphone: LISTENING";
+    try {
+      const v = await api("listen", {});
+      $("input").value = v.text;
+      notice(
+        v.text
+          ? "Recognised text is in the chat composer. Review before sending."
+          : "No speech recognised",
+      );
+    } finally {
+      $("micStatus").textContent = state.settings.microphone
+        ? "Microphone: ON (idle)"
+        : "Microphone: OFF";
+    }
+  });
+$("speak").onclick = () => safe(() => speak($("speechText").value));
+$("speakLast").onclick = () =>
+  safe(() =>
+    speak(
+      [...document.querySelectorAll(".message.assistant > div")].at(-1)
+        ?.textContent || "",
+    ),
+  );
+$("stopSpeech").onclick = () => {
+  $("speechAudio").pause();
+  safe(() => api("stop", {}));
+};
+$("speechAudio").onplay = () =>
+  document.querySelector(".orb").classList.add("speaking");
+$("speechAudio").onpause = $("speechAudio").onended = () =>
+  document.querySelector(".orb").classList.remove("speaking");
+safe(async () => {
+  const vs = await api("voices");
+  for (const v of vs) {
+    const o = document.createElement("option");
+    o.value = v.name;
+    o.textContent = v.name + " · " + v.culture;
+    $("voiceSelect").append(o);
+  }
+  if (state) {
+    $("voiceSelect").value = state.settings.voice;
+    $("microphoneEnabled").checked = !!state.settings.microphone;
+    $("micStatus").textContent = state.settings.microphone
+      ? "Microphone: ON (idle)"
+      : "Microphone: OFF";
+  }
+});
+$("saveProject").onclick = () =>
+  safe(async () => {
+    await updateSettings({ activeProject: $("activeProject").value.trim() });
+    privateHistory = [];
+    await refresh(true);
+  });
+if (window.chrome?.webview) {
+  const picker = document.createElement("button");
+  picker.textContent = "Choose folder…";
+  picker.onclick = () => window.chrome.webview.postMessage("choose-workspace");
+  $("addWorkspace").before(picker);
+  window.chrome.webview.addEventListener("message", (e) => {
+    if (e.data.type === "workspace-picked")
+      $("workspacePath").value = e.data.path;
+  });
+}
+for (const name of [
+  "search_files",
+  "search_text",
+  "file_metadata",
+  "compare_files",
+  "create_directory",
+  "copy_file",
+  "move_file",
+  "request_delete",
+]) {
+  const o = document.createElement("option");
+  o.textContent = name;
+  $("toolName").append(o);
+}
+$("proactiveEnabled").onchange = () =>
+  safe(() => updateSettings({ proactive: $("proactiveEnabled").checked }));
+$("saveQuiet").onclick = () =>
+  safe(() =>
+    updateSettings({
+      quietStart: Number($("quietStart").value),
+      quietEnd: Number($("quietEnd").value),
+    }),
+  );
+$("addReminder").onclick = () =>
+  safe(async () => {
+    const due = new Date($("reminderDue").value);
+    if (!Number.isFinite(due.getTime())) throw Error("Choose a date and time");
+    await api("reminder", {
+      text: $("reminderText").value,
+      due: due.toISOString(),
+      repeat_minutes: Number($("reminderRepeat").value),
+    });
+    await refresh();
+  });
+const notified = new Set();
+function renderNotifications(items) {
+  $("notifications").replaceChildren();
+  for (const n of items) {
+    card(
+      $("notifications"),
+      n.stamp + " · " + n.text,
+      n.seen
+        ? []
+        : [
+            [
+              "Dismiss",
+              async () => {
+                await api("notification-read", { id: n.id });
+                renderNotifications(await api("notifications"));
+              },
+            ],
+          ],
+    );
+    if (!n.seen && !notified.has(n.id)) {
+      notified.add(n.id);
+      notice("Reminder: " + n.text);
+    }
+  }
+}
+setInterval(
+  () => safe(async () => renderNotifications(await api("notifications"))),
+  5000,
+);
+$("microphoneMain").onchange = () =>
+  safe(() => updateSettings({ microphone: $("microphoneMain").checked }));
+$("screenEnabled").onchange = () =>
+  safe(() => updateSettings({ screen: $("screenEnabled").checked }));
+let visionImage = "";
+function previewVision(image) {
+  visionImage = image;
+  $("visionPreview").src = "data:image/jpeg;base64," + image;
+  $("visionPreview").hidden = false;
+}
+$("visionFile").onchange = () =>
+  safe(async () => {
+    const file = $("visionFile").files[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) throw Error("Image must be under 20 MB");
+    const bitmap = await createImageBitmap(file),
+      canvas = document.createElement("canvas");
+    canvas.width = Math.min(1024, bitmap.width);
+    canvas.height = Math.round((bitmap.height * canvas.width) / bitmap.width);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    previewVision(canvas.toDataURL("image/jpeg", 0.7).split(",")[1]);
+  });
+$("captureScreen").onclick = () =>
+  safe(async () => {
+    if (!state.settings.screen) throw Error("Screen Vision is OFF");
+    if (!window.chrome?.webview)
+      throw Error("Screen capture is available in Dyanari.exe");
+    notice("Capturing primary display once…");
+    window.chrome.webview.postMessage("capture-screen:" + token);
+  });
+window.chrome?.webview?.addEventListener("message", (e) => {
+  if (e.data.type === "screen-captured") {
+    previewVision(e.data.image);
+    notice("Screen captured locally. Review the preview before inspection.");
+  }
+  if (e.data.type === "capture-error") notice(e.data.error);
+});
+$("inspectImage").onclick = () =>
+  safe(async () => {
+    if (!visionImage) throw Error("Choose or capture an image first");
+    $("visionResult").textContent = "Inspecting with local Qwen3-VL…";
+    try {
+      $("visionResult").textContent = (
+        await api("vision", {
+          image: visionImage,
+          prompt: $("visionPrompt").value,
+        })
+      ).text;
+    } catch (e) {
+      $("visionResult").textContent = e.message;
+      throw e;
+    }
+  });
+$("creativeEnabled").onchange = () =>
+  safe(() => updateSettings({ creative: $("creativeEnabled").checked }));
+$("voiceSelect").onchange = () =>
+  safe(() => updateSettings({ voice: $("voiceSelect").value }));
+$("speakReplies").onchange = () =>
+  safe(() => updateSettings({ speakReplies: $("speakReplies").checked }));
+$("startCreative").onclick = () =>
+  safe(async () => {
+    const result = await api("creative/start", {});
+    $("creativeStatus").textContent = result.starting
+      ? "ComfyUI is starting; refresh in a few seconds."
+      : "Local service is running";
+  });
+const artworkUrls = new Set();
+async function refreshCreative() {
+  const v = await api("creative/state");
+  $("creativeStatus").textContent = v.available
+    ? v.job
+      ? "Generating: " + v.job.status
+      : "Local ComfyUI connected"
+    : "Local ComfyUI is not running";
+  const selected = $("checkpoint").value;
+  $("checkpoint").replaceChildren();
+  for (const name of v.checkpoints) {
+    const o = document.createElement("option");
+    o.value = o.textContent = name;
+    o.selected = name === selected;
+    $("checkpoint").append(o);
+  }
+  for (const url of artworkUrls) URL.revokeObjectURL(url);
+  artworkUrls.clear();
+  $("artworkLibrary").replaceChildren();
+  for (const art of v.artworks) {
+    const r = await fetch("/api/artwork?id=" + encodeURIComponent(art.id), {
+      headers: { "X-Dyanari-Token": token },
+    });
+    if (!r.ok) continue;
+    const url = URL.createObjectURL(await r.blob());
+    artworkUrls.add(url);
+    const div = document.createElement("div");
+    div.className = "card";
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = art.prompt;
+    img.className = "generatedImage";
+    const caption = document.createElement("p");
+    caption.textContent = art.prompt;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Dyanari-" + art.id + ".png";
+    a.textContent = "Save image";
+    div.append(img, caption, a);
+    $("artworkLibrary").append(div);
+  }
+}
+$("refreshCreative").onclick = () => safe(refreshCreative);
+$("generateImage").onclick = () =>
+  safe(async () => {
+    $("generateImage").disabled = true;
+    $("creativeStatus").textContent =
+      "Generating locally — the first checkpoint load can take a minute.";
+    try {
+      await api("creative/generate", {
+        prompt: $("imagePrompt").value,
+        negative: $("imageNegative").value,
+        checkpoint: $("checkpoint").value,
+        width: Number($("imageSize").value),
+        height: Number($("imageSize").value),
+        steps: Number($("imageSteps").value),
+        seed: Number($("imageSeed").value),
+      });
+      await refreshCreative();
+      notice("Image generated and saved locally.");
+    } finally {
+      $("generateImage").disabled = false;
+    }
+  });
+function choices(parent, values, selected, key) {
+  parent.replaceChildren();
+  for (const value of values) {
+    const label = document.createElement("label"),
+      input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = selected.includes(value);
+    input.onchange = () =>
+      safe(() =>
+        updateSettings({
+          [key]: input.checked
+            ? [...new Set([...state.settings[key], value])]
+            : state.settings[key].filter((v) => v !== value),
+        }),
+      );
+    label.append(
+      input,
+      document.createTextNode(" " + value.replaceAll("_", " ")),
+    );
+    parent.append(label);
+  }
+}
+function renderComputerState(s, actions) {
+  $("computerEnabled").checked = !!s.computer;
+  $("computerLabel").textContent = s.computer ? "ON" : "OFF";
+  $("runToolsEnabled").checked = !!s.runTools;
+  $("computerMode").value = s.computerMode || "observe";
+  choices(
+    $("approvedApps"),
+    actions?.supportedApps || [],
+    s.approvedApps || [],
+    "approvedApps",
+  );
+  choices(
+    $("approvedWorkflows"),
+    actions?.supportedWorkflows || [],
+    s.approvedWorkflows || [],
+    "approvedWorkflows",
+  );
+  $("actionHelperStatus").textContent = actions?.available
+    ? "Native Windows action helper installed"
+    : "Native action helper unavailable";
+  $("windowGrants").replaceChildren();
+  for (const w of actions?.grants || [])
+    card($("windowGrants"), w.app + " · " + w.title + "\n" + w.id, [
+      [
+        "Inspect",
+        async () => {
+          $("windowInspection").textContent = JSON.stringify(
+            await api("tool", {
+              name: "inspect_window",
+              arguments: { window: w.id },
+            }),
+            null,
+            2,
+          );
+        },
+      ],
+      [
+        "Revoke",
+        async () => {
+          await api("actions/revoke", { window: w.id });
+          await refresh();
+        },
+      ],
+    ]);
+  $("computerApprovals").replaceChildren();
+  for (const p of actions?.pending || [])
+    card($("computerApprovals"), p.summary, [
+      [
+        "Approve this action",
+        async () => {
+          if (
+            confirm("Execute this specific computer action?\n\n" + p.summary)
+          ) {
+            const result = await api("actions/confirm", {
+              id: p.id,
+              approved: true,
+            });
+            $("windowInspection").textContent = JSON.stringify(result, null, 2);
+            await refresh();
+            notice("Computer action returned a verified execution result.");
+          }
+        },
+      ],
+      [
+        "Reject",
+        async () => {
+          await api("actions/reject", { id: p.id });
+          await refresh();
+        },
+      ],
+    ]);
+}
+$("computerEnabled").onchange = () =>
+  safe(() => updateSettings({ computer: $("computerEnabled").checked }));
+$("runToolsEnabled").onchange = () =>
+  safe(() => updateSettings({ runTools: $("runToolsEnabled").checked }));
+$("computerMode").onchange = () =>
+  safe(() => updateSettings({ computerMode: $("computerMode").value }));
+$("listWindows").onclick = () =>
+  safe(async () => {
+    const result = await api("actions/windows", {});
+    $("windowsList").replaceChildren();
+    for (const w of result.windows)
+      card(
+        $("windowsList"),
+        w.app + " · " + w.title + "\n" + w.id,
+        w.authorised
+          ? []
+          : [
+              [
+                "Authorise this window",
+                async () => {
+                  await api("actions/grant", { window: w.id, approved: true });
+                  await refresh();
+                },
+              ],
+            ],
+      );
+    if (!result.windows.length)
+      notice("No visible windows from the approved applications were found.");
+  });
+$("checkFile").onclick = () =>
+  safe(async () => {
+    $("checkResult").textContent = JSON.stringify(
+      await api("tool", {
+        name: "check_project_file",
+        arguments: { path: $("checkFilePath").value },
+      }),
+      null,
+      2,
+    );
+    await refresh();
+  });
+for (const name of [
+  "list_windows",
+  "inspect_window",
+  "open_application",
+  "set_control_text",
+  "invoke_control",
+  "create_workspace_note",
+  "check_project_file",
+  "calculator_sum",
+]) {
+  const option = document.createElement("option");
+  option.textContent = name;
+  $("toolName").append(option);
+}

@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="token" content="TOKEN_PLACEHOLDER" />
+    <title>Dyanari · Local Companion</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <aside>
+      <div class="brand">◈ <span>DYANARI</span></div>
+      <p class="muted">Your mind. Your machine.</p>
+      <nav>
+        <button data-tab="chat">Conversation</button
+        ><button data-tab="memory">Memory</button
+        ><button data-tab="tools">Tools & permissions</button
+        ><button data-tab="actions">Computer & checks</button
+        ><button data-tab="models">Models</button
+        ><button data-tab="personality">Personality</button
+        ><button data-tab="activity">Activity & recovery</button
+        ><button data-tab="services">Voice & creative studio</button>
+      </nav>
+      <div class="bottom">
+        <div class="orb">D</div>
+        <p>Locally present.</p>
+        <small id="health">Connecting…</small>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <small>YOUR LOCAL COMPANION</small>
+          <h1 id="title">Conversation</h1>
+        </div>
+        <button id="stop" class="danger">Stop all tasks</button>
+      </header>
+      <div id="toggles">
+        <label
+          >Internet Access: <input id="internet" type="checkbox" /><b
+            id="internetLabel"
+            >OFF</b
+          ></label
+        ><label
+          >Tools & File Access: <input id="toolsEnabled" type="checkbox" /><b
+            id="toolsLabel"
+            >OFF</b
+          ></label
+        >
+      </div>
+      <div class="row">
+        <label
+          >Proactive Mode: <input type="checkbox" id="proactiveEnabled" /><b
+            id="proactiveLabel"
+            >OFF</b
+          ></label
+        ><label
+          >Microphone: <input type="checkbox" id="microphoneMain" /><b
+            id="microphoneLabel"
+            >OFF</b
+          ></label
+        ><label
+          >Screen Vision: <input type="checkbox" id="screenEnabled" /><b
+            id="screenLabel"
+            >OFF</b
+          ></label
+        >
+      </div>
+      <section id="chat" class="page">
+        <div id="messages">
+          <div class="welcome">
+            <div class="orb">D</div>
+            <h2>A little curiosity. A world of possibility.</h2>
+            <p>Talk, create, or work on an approved project together.</p>
+          </div>
+        </div>
+        <form id="chatForm">
+          <textarea
+            id="input"
+            placeholder="Talk to Dyanari…"
+            rows="3"
+            required
+          ></textarea>
+          <div class="row">
+            <label><input type="checkbox" id="private" /> Private session</label
+            ><span id="modelLabel" class="muted"></span
+            ><button id="send">Send ↗</button>
+          </div>
+        </form>
+        <small class="muted"
+          >Private sessions omit chat storage. Tool operations still have an
+          audit history.</small
+        >
+      </section>
+      <section id="memory" class="page hidden">
+        <h2>What stays with us</h2>
+        <p>
+          Memory belongs to Dyanari and is shared across all chat models.
+          Switching models preserves saved memories, personality and stored
+          conversations. Project boundaries and private-session rules still
+          apply.
+        </p>
+        <p>
+          Memories are editable and use local semantic retrieval. Begin a
+          message with “Remember that …” to store an explicit fact. Project
+          memories are recalled only in the selected project; unlabelled
+          memories are shared.
+        </p>
+        <label
+          >Active project / lore namespace<input
+            id="activeProject"
+            placeholder="Blank for general conversation" /></label
+        ><button id="saveProject">Switch project</button
+        ><input id="memorySearch" placeholder="Search memories" /><textarea
+          id="memoryContent"
+          placeholder="A preference, project decision, or character detail"
+        ></textarea
+        ><input
+          id="memoryProject"
+          placeholder="Project / lore namespace"
+        /><button id="addMemory">Remember</button>
+        <div id="memories"></div>
+        <h3>Encrypted backup</h3>
+        <input
+          type="password"
+          id="backupPassword"
+          placeholder="Password (12+ characters)"
+        /><button id="backup">Download encrypted backup</button
+        ><label
+          >Restore backup
+          <input type="file" id="restoreFile" accept=".json" /></label
+        ><button id="restore">Restore and merge</button>
+      </section>
+      <section id="tools" class="page hidden">
+        <h2>Permission is yours</h2>
+        <p>
+          Both master switches default to OFF. File access is restricted to
+          approved folders. File deletion requires explicit confirmation in
+          Activity and moves the file to recovery storage. Computer actions and
+          offline project checks have separate permissions in Computer & checks.
+          Arbitrary shell commands are unavailable.
+        </p>
+        <div id="details"></div>
+        <h3>Approved workspace</h3>
+        <input
+          id="workspacePath"
+          placeholder="Absolute folder path, e.g. C:\Projects\Sevenfall"
+        /><label
+          ><input type="checkbox" id="workspaceWrite" /> Allow writes</label
+        ><button id="addWorkspace">Grant folder access</button>
+        <div id="workspaces"></div>
+        <h3>Trusted internet domains</h3>
+        <input
+          id="domains"
+          placeholder="example.com, docs.example.com (blank allows public HTTPS sites)"
+        /><button id="saveDomains">Save domain list</button>
+        <h3>Try a file tool</h3>
+        <select id="toolName">
+          <option>list_files</option>
+          <option>read_file</option>
+          <option>write_file</option>
+          <option>edit_file</option>
+          <option>fetch_page</option>
+          <option>search_web</option></select
+        ><textarea
+          id="toolArgs"
+          placeholder='{"path":"C:\\Projects\\example.txt"}'
+        ></textarea
+        ><button id="runTool">Execute with current permissions</button>
+        <pre id="toolResult"></pre>
+      </section>
+      <section id="actions" class="page hidden">
+        <h2>Approved Windows workflows</h2>
+        <p>
+          Computer Control and Run Tools are separate from internet access. The
+          Tools & File Access master switch must also be ON. Window
+          authorisations last only for this app session.
+        </p>
+        <label
+          >Computer Control <input type="checkbox" id="computerEnabled" /><b
+            id="computerLabel"
+            >OFF</b
+          ></label
+        ><label
+          ><input type="checkbox" id="runToolsEnabled" /> Run Tools — offline
+          checks and approved application launches</label
+        >
+        <p>
+          Checks parse source without executing it. JavaScript and JSON use the
+          bundled Node runtime; Python uses the optional local interpreter.
+        </p>
+        <label
+          >Computer execution mode<select id="computerMode">
+            <option value="observe">
+              Observe — inspect authorised windows only
+            </option>
+            <option value="assist">
+              Assist — approve each computer action
+            </option>
+            <option value="autonomous">
+              Autonomous — standing approval for selected workflows only
+            </option>
+          </select></label
+        >
+        <p>
+          These modes govern computer actions. File editing remains governed by
+          its own permissions. Generic UI text changes and button/menu
+          invocations always require a fresh approval, even in Autonomous mode.
+        </p>
+        <h3>Approved applications</h3>
+        <div id="approvedApps"></div>
+        <h3>Standing workflow approvals</h3>
+        <div id="approvedWorkflows"></div>
+        <p>
+          Creating a workspace note additionally requires Create Files and an
+          approved writable folder. It never overwrites an existing file.
+        </p>
+        <button id="listWindows">Find approved application windows</button>
+        <div id="windowsList"></div>
+        <h3>Authorised windows</h3>
+        <div id="windowGrants"></div>
+        <pre id="windowInspection"></pre>
+        <h3>Validate a project file</h3>
+        <input
+          id="checkFilePath"
+          placeholder="Absolute path to a JS, MJS, CJS, JSON or Python file"
+        /><button id="checkFile">Run offline syntax check</button>
+        <pre id="checkResult"></pre>
+        <h3>Pending computer actions</h3>
+        <div id="computerApprovals"></div>
+        <p id="actionHelperStatus"></p>
+      </section>
+      <section id="models" class="page hidden">
+        <h2>A smaller brain, room to breathe</h2>
+        <p>
+          Detected: Ryzen 5 5500 · 16 GB RAM · RTX 3060 8 GB. Recommended: Qwen3
+          4B, 4096-token context. The standard Qwen model is installed first; it
+          is not an abliterated variant.
+        </p>
+        <select id="modelSelect"></select>
+        <p id="sharedMemoryStatus">
+          Shared memory stays with Dyanari when you change models.
+        </p>
+        <label
+          >Context
+          <input id="context" type="number" min="1024" max="8192" /></label
+        ><label
+          >Temperature
+          <input
+            id="temperature"
+            type="number"
+            min="0"
+            max="2"
+            step="0.05" /></label
+        ><button id="saveModel">Use model</button>
+        <pre id="running"></pre>
+        <select id="downloadModel">
+          <option>qwen3:4b-instruct</option>
+          <option>qwen3:1.7b</option>
+          <option>qwen3:0.6b</option>
+          <option>qwen3:8b</option></select
+        ><button id="download">Download model (requires Internet ON)</button>
+        <pre id="downloadStatus"></pre>
+      </section>
+      <section id="personality" class="page hidden">
+        <h2>Her voice, your story</h2>
+        <p>
+          Edit biography, tone, relationship preferences, lore and boundaries.
+          Import a plain-text character sheet.
+        </p>
+        <textarea id="personalityText" rows="18"></textarea
+        ><input type="file" id="characterImport" accept=".txt,.md" /><button
+          id="savePersonality"
+        >
+          Save personality
+        </button>
+      </section>
+      <section id="activity" class="page hidden">
+        <h2>Activity & recovery</h2>
+        <button id="refresh">Refresh</button
+        ><button id="clearHistory">Clear stored conversation</button>
+        <h3>Pending confirmations</h3>
+        <div id="pendingActions"></div>
+        <h3>Reminders & notifications</h3>
+        <p>
+          Local reminders run while Dyanari is open. Quiet hours defer
+          reminders; equal start/end disables quiet hours.
+        </p>
+        <input id="reminderText" placeholder="Reminder text" /><input
+          id="reminderDue"
+          type="datetime-local"
+        /><label
+          >Repeat every minutes (0 = one-time)<input
+            id="reminderRepeat"
+            type="number"
+            min="0"
+            value="0" /></label
+        ><button id="addReminder">Schedule reminder</button>
+        <label
+          >Quiet hours start (0–23)<input
+            id="quietStart"
+            type="number"
+            min="0"
+            max="23" /></label
+        ><label
+          >Quiet hours end (0–23)<input
+            id="quietEnd"
+            type="number"
+            min="0"
+            max="23" /></label
+        ><button id="saveQuiet">Save quiet hours</button>
+        <div id="reminders"></div>
+        <div id="notifications"></div>
+        <h3>File organisation history</h3>
+        <div id="operations"></div>
+        <h3>File revisions</h3>
+        <div id="revisions"></div>
+        <h3>Audit trail</h3>
+        <div id="logs"></div>
+      </section>
+      <section id="services" class="page hidden">
+        <h2>Optional services</h2>
+        <p>
+          Local speech, image analysis and optional ComfyUI run on this machine.
+          Features that still need setup are labelled below.
+        </p>
+        <div id="voicePanel" class="card">
+          <h3>Local Windows speech</h3>
+          <label
+            ><input id="microphoneEnabled" type="checkbox" /> Microphone
+            permission (OFF by default)</label
+          ><button id="listen">Listen once (up to 15 seconds)</button>
+          <p id="micStatus">Microphone: OFF</p>
+          <p>
+            Recognition uses the default Windows microphone and requires an
+            installed en-GB recognition engine. Recognised text goes to the chat
+            composer for review.
+          </p>
+          <label
+            ><input type="checkbox" id="speakReplies" /> Read replies aloud
+            locally</label
+          ><select id="voiceSelect"></select
+          ><textarea
+            id="speechText"
+            placeholder="Text to speak locally"
+          ></textarea
+          ><button id="speak">Speak</button
+          ><button id="speakLast">Speak last reply</button
+          ><button id="stopSpeech">Stop speech</button
+          ><audio id="speechAudio" controls></audio>
+        </div>
+        <div class="card">
+          <h3>Local image & screen vision</h3>
+          <p>
+            Choose an image to inspect locally. Screen capture requires the
+            Screen Vision switch and the desktop app, captures the primary
+            display once, and is shown for review before analysis. There is no
+            continuous observation.
+          </p>
+          <input
+            id="visionFile"
+            type="file"
+            accept="image/png,image/jpeg"
+          /><button id="captureScreen">Capture screen once</button
+          ><img
+            id="visionPreview"
+            alt="Selected image preview"
+            hidden
+          /><textarea
+            id="visionPrompt"
+            placeholder="What should Dyanari look for?"
+          ></textarea
+          ><button id="inspectImage">Inspect image locally</button>
+          <pre id="visionResult"></pre>
+        </div>
+        <div class="card">
+          Computer Control: configure approved applications, windows and
+          workflows in Computer & checks.
+        </div>
+        <div class="card">
+          Proactive reminders: configure in Activity. Delivery runs while
+          Dyanari is open.
+        </div>
+        <div class="card">
+          <h3>Creative Studio · local ComfyUI</h3>
+          <label
+            ><input type="checkbox" id="creativeEnabled" /> Enable Creative
+            Studio</label
+          ><button id="startCreative">Start local service</button
+          ><button id="refreshCreative">Refresh models & library</button>
+          <p id="creativeStatus">Service status not checked</p>
+          <select id="checkpoint"></select
+          ><textarea
+            id="imagePrompt"
+            placeholder="Describe the image to create"
+          ></textarea
+          ><textarea
+            id="imageNegative"
+            placeholder="Negative prompt (optional)"
+          ></textarea
+          ><label
+            >Size<select id="imageSize">
+              <option value="512">512 × 512</option>
+              <option value="768">768 × 768</option>
+              <option value="1024">1024 × 1024</option>
+            </select></label
+          ><label
+            >Steps<input
+              id="imageSteps"
+              type="number"
+              min="1"
+              max="30"
+              value="20" /></label
+          ><label
+            >Seed<input
+              id="imageSeed"
+              type="number"
+              min="0"
+              value="42" /></label
+          ><button id="generateImage">Generate locally</button>
+          <p>
+            One image at a time. Conversation models unload before generation;
+            ComfyUI releases its models after the queue finishes. Start at 512
+            pixels on this GPU.
+          </p>
+          <div id="artworkLibrary"></div>
+        </div>
+        <div class="card">
+          Android / remote access: disabled · loopback connections only
+        </div>
+      </section>
+      <div id="notice" role="status"></div>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
