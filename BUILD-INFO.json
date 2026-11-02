@@ -1,9 +1,9 @@
 {
-  "version": "0.10.0",
-  "sha256": "2350C111723C44B45627D5EBE15CAEAE217EC64A7ABF8B784EAAA09C31A64B39",
-  "bytes": 158219421,
-  "sourceCommit": "8586466902a87326b46e650af729e319b7eab0fa",
-  "automatedTests": 136,
+  "version": "0.10.1",
+  "sha256": "fe40fa2820719e3af8a14e66a33110f3d5f17f21e1bc3f95872b0ba73c31bde1",
+  "bytes": 158230236,
+  "sourceCommit": "7fc54b0f3cb0271c5091a610c8632e515b92985b",
+  "automatedTests": 124,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -16,12 +16,12 @@
   "guiLaunchPipeRegression": "passed",
   "installer": {
     "selfTests": 49,
-    "freshMachine": "not yet verified",
+    "freshMachine": "Fresh Dyanari install on existing Windows 11 machine passed with setup fixes; pristine OS/WebView2 install and uninstall preservation not verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.10.0.exe",
-    "sha256": "93DA82CB46744A3C333FD41D000C65A7E4C5C049034AF53117AF349DE97CD19F",
-    "bytes": 210259476
+    "file": "DyanariSetup-0.10.1.exe",
+    "sha256": "8575a1856b5048e7eb10e9e64a31dde25aba3d30c8c4c0d911e31127a1f5f626",
+    "bytes": 210276435
   },
   "development": {
     "actualProjectTests": 7,
@@ -74,7 +74,7 @@
     "gpuVoice": "not validated; managed runtime uses CPU",
     "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
   },
-  "desktopFile": "Dyanari-0.10.0.exe",
+  "desktopFile": "Dyanari-0.10.1.exe",
   "qwenImages": {
     "httpAcceptance": "passed",
     "bundles": 9,
@@ -151,5 +151,72 @@
     },
     "httpAcceptance": "passed: authenticated fixture process, mesh downloads, private chat tool continuation, cancellation, revocation, restore",
     "bundles": 6
+  },
+  "verificationScope": "Current run: 117 service-independent Node tests plus 7 Python installer tests; six HTTP acceptance scripts and packaged checks counted separately. Other retained entries describe earlier release acceptance.",
+  "secondMachine": {
+    "date": "2026-11-02",
+    "os": "Windows 11 Home x64 build 26200",
+    "ramGB": 32,
+    "gpu": "RTX 4080 SUPER 16GB",
+    "setup": "scripted verified setup implementation; asynchronous download, child process pipes and optional setup certificate/linking fixes",
+    "chat": {
+      "model": "dyanari-abliterated:8b",
+      "realResponse": true,
+      "seconds": 47.712,
+      "privateMessagesBefore": 0,
+      "privateMessagesAfter": 0
+    },
+    "voice": {
+      "identity": "British Velvet",
+      "saved": true,
+      "wavBytes": 203646,
+      "asr": "sentence recovered; name transcribed as Janari",
+      "device": "cpu"
+    },
+    "image": {
+      "bundle": "uc-q4",
+      "width": 512,
+      "height": 512,
+      "steps": 25,
+      "seconds": 145.26,
+      "pngBytes": 206163
+    },
+    "mesh": {
+      "backend": "tripo",
+      "quality": "balanced",
+      "seconds": 72.525,
+      "stlBytes": 37500084,
+      "report": {
+        "schema": 1,
+        "triangles": 750000,
+        "vertices": 375002,
+        "watertight": true,
+        "winding_consistent": true,
+        "extents_mm": [
+          39.91707246659915,
+          41.459194041799414,
+          60
+        ],
+        "units": "mm",
+        "up_axis": "Z",
+        "original_triangles": 1174292,
+        "simplified": true,
+        "print_ready_certified": false
+      }
+    },
+    "sourceTests": 117,
+    "pythonTests": 7,
+    "httpAcceptanceScripts": 6,
+    "unrelatedOllamaPreserved": true,
+    "repair": {
+      "passed": true,
+      "version": "0.10.1",
+      "model": "dyanari-abliterated:8b",
+      "voiceIdentityPreserved": true,
+      "meshLibraryPreserved": true,
+      "privateMessages": 0,
+      "internet": false,
+      "files": false
+    }
   }
 }
