@@ -34,7 +34,7 @@ $envRoot=Join-Path $root 'environment';New-Item -ItemType Directory -Force -Path
 foreach($name in @('pyproject.toml','uv.lock')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot ('image-runtime\'+$name)) -Destination (Join-Path $envRoot $name) -Force}
 $uv=Join-Path $root 'uv\uv.exe';$sync=@('sync','--frozen','--project',$envRoot,'--python','cpython-3.11.13-windows-x86_64')
 if($Cpu){$sync+=@('--no-group','cuda','--group','cpu')}
-& $uv @sync;if($LASTEXITCODE){throw 'Pinned image runtime dependency setup failed'}
+& $uv --system-certs @sync;if($LASTEXITCODE){throw 'Pinned image runtime dependency setup failed'}
 if(!$Cpu){& (Join-Path $envRoot '.venv\Scripts\python.exe') -c "import torch; assert torch.cuda.is_available(), 'NVIDIA CUDA is not ready for the pinned runtime. Use a compatible driver or explicitly choose CPU setup.'";if($LASTEXITCODE){throw 'CUDA readiness check failed before downloading image weights'}}
 $needed=[long]$bundle.bytes+3GB;if((New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($root))).AvailableFreeSpace -lt $needed){throw 'Insufficient disk space for selected image bundle'}
 foreach($file in $bundle.files){
