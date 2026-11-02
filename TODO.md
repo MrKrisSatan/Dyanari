@@ -4,7 +4,7 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Next work, in order
 
-- [x] **AGT-01 · Persistent project tasks.** Original request/workspace, real step results, approval continuation, required verification, Stop/revocation and restart recovery implemented. Evidence: 13 task tests, project-task HTTP acceptance and an actual Qwen3 4B Instruct → approval → real command → automatic continuation flow; [0.7](RELEASE-0.7.md). Finished remains a model-turn status, not proof of all requested behavior.
+- [x] **AGT-01 · Persistent project tasks.** Original request/workspace, real step results, approval continuation, required verification, Stop/revocation and restart recovery implemented. Evidence: 14 task tests, project-task HTTP acceptance and an actual Qwen3 4B Instruct → approval → real command → automatic continuation flow; [0.7](RELEASE-0.7.md). Finished remains a model-turn status, not proof of all requested behavior.
 - [ ] **REL-01 · Clean-machine installation acceptance.** Install in a fresh supported Windows x64 VM: Ollama/WebView2/Git/GitHub CLI/npm, selected HF model download/import and first real response; repair/upgrade/uninstall with memory preservation. Record OS/build and exact artifacts. Needs a clean VM; existing staging/self-tests do not complete this item.
 - [ ] **DOC-01 · Structured document reading.** Read PDF, DOCX and XLSX locally within approved workspaces, with bounded results and no macro/embedded-code execution. Acceptance: representative documents, malformed/oversized input, namespace/path/permission tests and exact packaged dependencies.
 - [ ] **DOC-02 · Structured document editing.** Edit DOCX paragraphs and XLSX cells while preserving unaffected formatting/formulas; previews, backups and conflict-safe recovery. Acceptance: round-trip files opened by independent readers and visual checks where relevant. PDF editing is a separate task.
@@ -30,7 +30,7 @@ This is the shared checklist for Astra, Codex and future maintainers. Read [AGEN
 
 ## Remaining full-brief work
 
-- [ ] **AGT-02 · Longer task planning and review.** Editable plans/checkpoints, richer success criteria, recoverable exploratory errors, task history paging/export and backup, and measured context budgeting for small models. Keep actual verification separate from model claims.
+- [ ] **AGT-02 · Longer task planning and review.** Coordinated multi-host task ownership, editable plans/checkpoints, richer success criteria, recoverable exploratory errors, task history paging/export and backup, and measured context budgeting for small models. Keep actual verification separate from model claims.
 - [ ] **CORE-04 · Additional local inference endpoints.** User-configured compatible loopback endpoints, readiness/capability checks and model-independent context. No accidental cloud fallback.
 - [ ] **CORE-05 · Wider model catalog.** Verified 14B/larger alternatives for suitable hardware, download resume, benchmarks for tool use and post-install inference acceptance. Community “abliterated” is not a quality guarantee.
 - [ ] **CORE-06 · Broader resource scheduling.** Cross-profile GPU coordination, low-memory admission and measured coexistence of chat/vision/creative/voice jobs.

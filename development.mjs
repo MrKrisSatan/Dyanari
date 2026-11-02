@@ -78,7 +78,7 @@ export class DevelopmentEngine {
    }else child.kill('SIGKILL');};
    const abort=()=>stop('Cancelled');signal?.addEventListener('abort',abort,{once:true});
    const timer=setTimeout(()=>stop('Command timed out'),timeout);
-   const monitor=setInterval(()=>{try{this.core.settings;}catch{stop('Permission monitor failed')}},300);
+   const monitor=setInterval(()=>{try{this.core.settings;this.core.agentTasks?.watch()}catch{stop('Permission monitor failed')}},300);
    const finish=(error,code)=>{if(done)return;done=true;clearTimeout(timer);clearInterval(monitor);signal?.removeEventListener('abort',abort);child.stdin.destroy();if(error)reject(error);else resolve({exitCode:code,passed:code===0,stdout:sensitive?stdout:redact(stdout),stderr:redact(stderr)})};
    child.on('error',e=>finish(e));
    for(const [stream,key]of [[child.stdout,'stdout'],[child.stderr,'stderr']])stream.setEncoding('utf8').on('data',chunk=>{
@@ -198,6 +198,7 @@ export class DevelopmentEngine {
  async confirm(id,signal) {
   const p=this.pending.get(id);this.pending.delete(id);
   if(!p||p.expires<Date.now())throw Error('Approval missing, expired or already used');
+  if(p.taskId&&!this.core.agentTasks?.acceptsApproval(p.taskId,id,'development'))throw Error('Project task approval was invalidated; request a fresh preview');
   this.require(p.name);if(this.running)throw Error('Another development operation is active');
   this.running=true;let release;
   const operation=new AbortController();signal=signal?AbortSignal.any([signal,operation.signal]):operation.signal;
