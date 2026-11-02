@@ -21,6 +21,7 @@ Finished means the model ended its turn without recorded failed/required checks.
 - Settings changes, permission revocation and Stop all tasks pause work. Backup restoration disables Project tasks; task records are not included in the memory/chat backup.
 - Rejected/expired/invalidated approvals pause the task. An explicit fresh approval is needed for any newly proposed operation. Removing a task record does not undo executed work.
 - Application-managed file paths, saved recipe folders and MCP working folders must remain under the selected task workspace, in addition to the normal leaf permission checks. Approved external code still runs with the Windows account's permissions; this is not an OS sandbox.
+- Use one task orchestration host per profile. Opening another host pauses unfinished work and invalidates old task approvals; coordinated multi-host task ownership remains future work.
 - One in-process model task runs at a time alongside the existing chat/vision/image guards. Resource leases still protect other instances sharing the profile. Queueing does not add cross-profile GPU isolation.
 - Bounds: 50 stored tasks, 24 model turns per task, eight turns per continuation segment and at most eight tool calls per model turn. Inference segments time out after three minutes; approved commands retain their existing timeout/output limits. Long tool results and event tails are truncated in task context. If the limit is reached, inspect results and start a reviewed follow-up.
 
@@ -32,7 +33,7 @@ Chat/task tool validation now correctly handles JSON string arrays such as git_c
 
 ## Verification
 
-Thirteen project-task tests cover a real approved command and continuation, retained intent, failed-result honesty, required verification, manual continuation, rejected/expired previews, workspace bounds, pause/revocation, process cancellation, restart, model-independent persistence, turn limits, string-array validation and stale/junction workspace behavior.
+Fourteen project-task tests cover a real approved command and continuation, retained intent, failed-result honesty, required verification, manual continuation, rejected/expired previews, workspace bounds, pause/revocation, process cancellation, restart, model-independent persistence, turn limits, string-array validation and stale/junction workspace behavior.
 
 Authenticated HTTP acceptance exercises a real background task, exact approval, actual command execution, automatic continuation, private-request rejection, Stop and backup permission reset using a deterministic local inference fixture. Separately, actual Qwen3 4B Instruct requested a saved recipe, waited for approval, saw the real marker/exit code and continued automatically under the same request. The marker was produced by the approved command, not model text.
 

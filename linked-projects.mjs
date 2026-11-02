@@ -105,6 +105,7 @@ export class LinkedProjectEngine {
  state(){return {reaPackage,projects:this.core.settings.linkedProjects.map(p=>{const c=this.clients.get(p.id);return {...p,installed:p.kind==='rea'?this.installed():true,connected:Boolean(c?.alive),toolCount:c?.tools.length||0,serverInfo:c?.serverInfo,log:c?.log||''}}),pending:[...this.pending.values()].filter(p=>p.expires>Date.now()).map(({id,summary,expires})=>({id,summary,expires})),runs:this.core.db.prepare('SELECT value FROM linked_project_runs ORDER BY rowid DESC LIMIT 12').all().map(r=>JSON.parse(r.value))}}
  reconcile(){
   const s=this.core.settings;
+  this.core.agentTasks?.watch();
   for(const [id,c]of this.clients){const p=s.linkedProjects.find(p=>p.id===id);let valid=false;try{if(p){this.core.resolve(p.path,true);valid=true}}catch{};if(!s.tools||!s.runTools||!s.read||!s.linkedProjectsEnabled||!p||!valid||signature(p)!==c.signature||!s.workspaces.some(w=>w.write&&this.core.inside(w.path,p.path)))this.stop(id)}
  }
  cancel(){this.pending.clear();this.reconcile()}
@@ -142,6 +143,7 @@ export class LinkedProjectEngine {
  }
  async confirm(id,signal){
   const p=this.pending.get(id);this.pending.delete(id);if(!p||p.expires<Date.now())throw Error('Approval missing, expired or already used');this.require();const current=this.profile(p.profile.id);if(JSON.stringify(current)!==JSON.stringify(p.profile))throw Error('Project configuration changed');
+  if(p.taskId&&!this.core.agentTasks?.acceptsApproval(p.taskId,id,'linked'))throw Error('Project task approval was invalidated; request a fresh preview');
   if(this.busy.has(current.id))throw Error('Another operation is active for this project');this.busy.add(current.id);
   const operation=new AbortController();signal=signal?AbortSignal.any([signal,operation.signal]):operation.signal;
   this.core.agentTasks?.approvalStarted('linked',id,()=>operation.abort());let outcome;

@@ -1,9 +1,9 @@
 {
   "version": "0.7.0",
-  "sha256": "B35627CCC1E110C1B6212927423A9F0BA48204B1E93347BBFB12FD4A0EF75107",
-  "bytes": 158087835,
-  "sourceCommit": "2e22e7b791132cb1deacc94acbf70fce3c3fc9c0",
-  "automatedTests": 90,
+  "sha256": "B07CCB90D77C9ED924E81FCBFC57842AD0FB16B4A06BCEC0BC6EB36FD7050AE8",
+  "bytes": 158088347,
+  "sourceCommit": "b59f2ef4e3f6c08970c6bbdc907b104e5b631fc8",
+  "automatedTests": 91,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -20,8 +20,8 @@
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
     "file": "DyanariSetup-0.7.0.exe",
-    "sha256": "81152D84CEE1BB325486BF1475C050F1D85DCE60C480620B79DB475C251A4384",
-    "bytes": 209772052
+    "sha256": "31D970F4EE5264E79CFE2EF364AB5661501AC9D3E7D851CC39D82C1537447918",
+    "bytes": 209772564
   },
   "development": {
     "actualProjectTests": 7,
@@ -56,8 +56,8 @@
     "tracker": "TODO.md, AGENTS.md, DEVELOPMENT.md",
     "nextReady": "REL-01 with clean VM; otherwise DOC-01",
     "nativeUi": "verified: task mode, workspace, original request, required verification and default OFF controls",
-    "unitTests": 13,
-    "recovery": "restart and revocation pause; no mutation replay",
+    "unitTests": 14,
+    "recovery": "restart, second host and revocation pause; old approvals invalidated; no mutation replay",
     "httpAcceptance": "passed: original intent, real command, post-approval continuation, private rejection, Stop and restore"
   }
 }
