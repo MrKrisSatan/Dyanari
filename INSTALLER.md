@@ -1,6 +1,6 @@
 # Dyanari Windows installer
 
-Run `DyanariSetup-0.9.0.exe` from the outputs folder. This is a per-user Windows x64 bootstrap installer, requiring Windows 10 build 19041 or newer, internet for dependencies, and at least 8 GB RAM for the smallest useful model. It does not require separately installed Node.js or .NET. Linux, macOS and ARM64 are not supported by this build. The installer is unsigned.
+Run `DyanariSetup-0.10.0.exe` from the outputs folder. This is a per-user Windows x64 bootstrap installer, requiring Windows 10 build 19041 or newer, internet for dependencies, and at least 8 GB RAM for the smallest useful model. It does not require separately installed Node.js or .NET. Linux, macOS and ARM64 are not supported by this build. The installer is unsigned.
 
 Setup detects physical RAM and NVIDIA VRAM, selects a conservative Q4_K_M model, shows download sizes, and lets you select another model or install the application only. Non-NVIDIA systems use the smallest recommendation and Ollama's CPU fallback; AMD/Intel GPU acceleration has not been validated. Hardware recommendations are estimates at 4096 context, not performance guarantees.
 
@@ -32,7 +32,7 @@ Run setup again to repair the app or add a different catalog model. Uninstall th
 
 Build: first `build-desktop.ps1 -Dotnet <SDK10 path>`, then `build-installer.ps1 -Dotnet <SDK10 path>`. Close a running portable executable before replacing it; the installer embeds the fresh `desktop/publish/Dyanari.exe` build.
 
-Validation: `DyanariSetup-0.9.0.exe --self-test` extracts the actual packaged payload and checks hardware tiers, all three model records, archive traversal rejection, corrupt-hash rejection and embedded executable presence. It writes `installer-self-test.json` beside the installer. This is not a substitute for a clean-machine installation test. Diagnostic log: `%LOCALAPPDATA%\Dyanari\setup-last.log`.
+Validation: `DyanariSetup-0.10.0.exe --self-test` extracts the actual packaged payload and checks hardware tiers, all three model records, archive traversal rejection, corrupt-hash rejection and embedded executable presence. It writes `installer-self-test.json` beside the installer. This is not a substitute for a clean-machine installation test. Diagnostic log: `%LOCALAPPDATA%\Dyanari\setup-last.log`.
 
 Verified in this build: all 43 existing application tests, desktop payload extraction, 11 packaged installer checks, and an isolated application-only staging install that verified/extracted the real Ollama archive, copied the app and wrote installation configuration. The staged Ollama executable reported version 0.40.13. Model downloads/imports, WebView2 installation, shortcut/uninstall registration and first launch on a fresh Windows machine still need end-to-end acceptance testing. Staging deliberately skips system registration, shared dependency installation and app launch.
 
@@ -51,3 +51,5 @@ Version 0.7.0 adds persistent project tasks and an evidence-backed TODO/agent ha
 Version 0.8 also installs the optional VoiceStudio setup script and guide beside Dyanari.exe. In Local services, enable VoiceStudio and Internet, then Install / repair. Model consent stays unchecked; weights are separate downloads. Runtime persists at %USERPROFILE%\.dyanari\voicestudio and voice data under the selected Dyanari data directory. Uninstall preserves these optional assets. See [VOICESTUDIO.md](VOICESTUDIO.md).
 
 Version 0.9 adds optional Qwen Image 2.1 setup beside text model selection, complete-bundle RAM/VRAM recommendations, explicit research-license acknowledgement, verified model files and isolated frozen runtime setup. Image installation stays unchecked. Existing image assets are preserved; the image runtime is separate from Forge and retained on uninstall. CPU setup requires an explicit hardware override and can be very slow. See [QWEN-IMAGE.md](QWEN-IMAGE.md).
+
+Optional Modly 3D setup (0.10): select TripoSG, Hunyuan3D Mini Turbo or a complete Trellis.2 GGUF geometry bundle, review model/auxiliary licences and explicitly opt in. TripoSG is recommended on suitable 16 GB RAM / 8 GB NVIDIA VRAM systems. Hunyuan requires territorial eligibility or separate rights; its published grant excludes UK/EU/South Korea. Trellis also uses DINOv3 terms. All 3D controls and consent default OFF. Setup provisions pinned isolated dependencies; inference remains disabled until the Creative and 3D switches are enabled. See [3D setup](MODLY.md).

@@ -10,8 +10,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Tests without inference services
-        run: node --test qwen-image.test.mjs voicestudio.test.mjs agent-tasks.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs validation.test.mjs
+        run: node --test modly.test.mjs qwen-image.test.mjs voicestudio.test.mjs agent-tasks.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs validation.test.mjs
       - name: Development API acceptance
         run: node development-http-integration.mjs
       - name: Memory API acceptance
@@ -24,3 +27,8 @@ jobs:
 
       - name: Qwen image API acceptance
         run: node qwen-image-http-integration.mjs
+
+      - name: Modly 3D API acceptance
+        run: node modly-http-integration.mjs
+      - name: Modly installer regressions
+        run: python modly-runtime/setup_test.py

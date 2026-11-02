@@ -1,11 +1,11 @@
 {
   "name": "dyanari",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test qwen-image.test.mjs voicestudio.test.mjs test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs project-checks.test.mjs validation.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs agent-tasks.test.mjs",
+    "test": "node --test modly.test.mjs qwen-image.test.mjs voicestudio.test.mjs test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs project-checks.test.mjs validation.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs agent-tasks.test.mjs",
     "test:services": "node --test optional-services.test.mjs vision.test.mjs",
     "test:integration": "node integration.mjs"
   },

@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing,System.IO.Compression.FileSystem
 $catalog=Get-Content -LiteralPath "$PSScriptRoot\models.json" -Raw | ConvertFrom-Json
 $imageCatalog=Get-Content -LiteralPath "$PSScriptRoot\image-catalog.json" -Raw|ConvertFrom-Json
+$meshCatalog=Get-Content -LiteralPath "$PSScriptRoot\modly-catalog.json" -Raw|ConvertFrom-Json
 function Recommend-Image([double]$ram,[double]$vram){$fit=@($imageCatalog.bundles|Where-Object {!$_.community -and $ram+0.5 -ge $_.ram -and $vram -ge $_.vram});if($fit.Count){return $fit[-1].id};return ''}
 function Recommend([double]$ram,[double]$vram) {
  if($ram -ge 24 -and $vram -ge 12){return 2}
@@ -24,7 +25,8 @@ if($SelfTest){
  $checks+=(Test-Path -LiteralPath "$PSScriptRoot\Dyanari.exe")
  $checks+=((Recommend-Image 16 8) -eq 'q4');$checks+=((Recommend-Image 24 8) -eq 'q4');$checks+=((Recommend-Image 32 12) -eq 'q5');$checks+=((Recommend-Image 64 24) -eq 'q8');$checks+=((Recommend-Image 8 0) -eq '')
  foreach($bundle in $imageCatalog.bundles){$checks+=($bundle.files.Count -ge 3 -and @($bundle.files|Where-Object {$_.sha256 -notmatch '^[a-f0-9]{64}$' -or $_.revision -notmatch '^[a-f0-9]{40}$' -or $_.bytes -le 0}).Count -eq 0)}
- foreach($extra in @('QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){$checks+=(Test-Path -LiteralPath (Join-Path $PSScriptRoot $extra))}
+ foreach($bundle in $meshCatalog.bundles){$checks+=($bundle.revision -match '^[a-f0-9]{40}$' -and $bundle.files.Count -ge 6 -and @($bundle.files|Where-Object {$_.sha256 -notmatch '^[a-f0-9]{64}$' -or $_.bytes -le 0}).Count -eq 0)}
+ foreach($extra in @('MODLY.md','THIRD-PARTY-MODLY.txt','setup-modly.ps1','modly-catalog.json','modly-runtime/setup.py','modly-runtime/worker.py','modly-runtime/shape/pyproject.toml','modly-runtime/shape/uv.lock','modly-runtime/trellis/pyproject.toml','modly-runtime/trellis/uv.lock','QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){$checks+=(Test-Path -LiteralPath (Join-Path $PSScriptRoot $extra))}
  @{passed=($checks -notcontains $false);checks=$checks.Count;catalog=$catalog;appHash=(Get-FileHash "$PSScriptRoot\Dyanari.exe").Hash} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Report
  if($checks -contains $false){exit 1};exit 0
 }
@@ -61,10 +63,18 @@ $imageUpdate={if($imageModels.SelectedIndex -gt 0){$b=$imageCatalog.bundles[$ima
 $imageTerms=New-Object Windows.Forms.CheckBox;$imageTerms.Text='I accept the Qwen Research License: research/evaluation only unless separately licensed.';$imageTerms.SetBounds(22,495,680,34);$form.Controls.Add($imageTerms)
 $termsLink=New-Object Windows.Forms.LinkLabel;$termsLink.Text='Review Qwen model terms';$termsLink.SetBounds(22,532,250,20);$termsLink.add_LinkClicked({Start-Process 'https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE'});$form.Controls.Add($termsLink)
 $imageOverride=New-Object Windows.Forms.CheckBox;$imageOverride.Text='Try hardware-limited image tier (CPU / slower offload; may not fit)';$imageOverride.SetBounds(280,532,425,24);$form.Controls.Add($imageOverride)
-$progress=New-Object Windows.Forms.ProgressBar;$progress.SetBounds(22,570,680,22);$form.Controls.Add($progress)
-$status=New-Object Windows.Forms.Label;$status.SetBounds(22,604,680,62);$status.Text='Windows 10/11 x64. Internet is needed during setup. No admin access required.';$form.Controls.Add($status)
-$button=New-Object Windows.Forms.Button;$button.Text='Install';$button.SetBounds(480,690,105,32);$form.Controls.Add($button)
-$cancel=New-Object Windows.Forms.Button;$cancel.Text='Close';$cancel.SetBounds(597,690,105,32);$form.Controls.Add($cancel)
+$meshCheck=New-Object Windows.Forms.CheckBox;$meshCheck.Text='Also install a local Modly 3D backend (optional multi-GB download)';$meshCheck.SetBounds(22,570,680,24);$form.Controls.Add($meshCheck)
+$meshModels=New-Object Windows.Forms.ComboBox;$meshModels.DropDownStyle='DropDownList';$meshModels.SetBounds(22,603,680,28);[void]$meshModels.Items.Add('Skip 3D setup / choose later');$meshModels.SelectedIndex=0
+for($i=0;$i -lt $meshCatalog.bundles.Count;$i++){$b=$meshCatalog.bundles[$i];[void]$meshModels.Items.Add($b.name+' - '+[math]::Round($b.bytes/1GB,1)+' GiB weights');if($b.id -eq 'tripo' -and $ram+0.5 -ge 16 -and $vram -ge 8){$meshModels.SelectedIndex=$i+1}};$form.Controls.Add($meshModels)
+$meshTerms=New-Object Windows.Forms.CheckBox;$meshTerms.Text="I reviewed and accept the selected 3D model and auxiliary components' licences.";$meshTerms.SetBounds(22,640,680,34);$form.Controls.Add($meshTerms)
+$meshDetail=New-Object Windows.Forms.TextBox;$meshDetail.Multiline=$true;$meshDetail.ReadOnly=$true;$meshDetail.ScrollBars='Vertical';$meshDetail.SetBounds(22,681,680,88);$form.Controls.Add($meshDetail)
+$meshUpdate={if($meshModels.SelectedIndex -gt 0){$b=$meshCatalog.bundles[$meshModels.SelectedIndex-1];$meshDetail.Text=$b.license+"`r`n"+$b.licenseUrl+"`r`nGuidance: "+$b.ram+' GB RAM / '+$b.vram+' GB NVIDIA VRAM. Trellis also uses the DINOv3 licence: https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md'}else{$meshDetail.Text='Skip 3D setup. Install TripoSG, Hunyuan3D Mini Turbo or Trellis.2 GGUF later in 3D Studio. Based on Modly by Lightning Pixel.'};$meshTerms.Checked=$false};$meshModels.add_SelectedIndexChanged($meshUpdate);& $meshUpdate
+$meshTerritory=New-Object Windows.Forms.CheckBox;$meshTerritory.Text='Hunyuan only: I have territorial eligibility or separate rights. Published terms exclude UK, EU and South Korea.';$meshTerritory.SetBounds(22,779,680,40);$form.Controls.Add($meshTerritory)
+$meshOverride=New-Object Windows.Forms.CheckBox;$meshOverride.Text='Allow 3D setup below hardware guidance (may run out of memory)';$meshOverride.SetBounds(22,825,680,26);$form.Controls.Add($meshOverride)
+$progress=New-Object Windows.Forms.ProgressBar;$progress.SetBounds(22,868,680,22);$form.Controls.Add($progress)
+$status=New-Object Windows.Forms.Label;$status.SetBounds(22,902,680,62);$status.Text='Windows 10/11 x64. Internet is needed during setup. No admin access required.';$form.Controls.Add($status)
+$button=New-Object Windows.Forms.Button;$button.Text='Install';$button.SetBounds(480,982,105,32);$form.Controls.Add($button)
+$cancel=New-Object Windows.Forms.Button;$cancel.Text='Close';$cancel.SetBounds(597,982,105,32);$form.Controls.Add($cancel)
 $script:running=$false;$script:cancelled=$false
 $cancel.add_Click({if($script:running){$script:cancelled=$true;$cancel.Enabled=$false}else{$form.Close()}})
 $form.add_FormClosing({param($sender,$event) if($script:running){$script:cancelled=$true;$event.Cancel=$true}})
@@ -92,15 +102,17 @@ function Run($exe,$arguments,$environment=@{}) {
 }
 Add-Type -AssemblyName System.Net.Http
 $installAction={
- $script:running=$true;$script:cancelled=$false;$button.Enabled=$false;$models.Enabled=$false;$cancel.Text='Cancel';foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride)){$control.Enabled=$false}
+ $script:running=$true;$script:cancelled=$false;$button.Enabled=$false;$models.Enabled=$false;$cancel.Text='Cancel';foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride,$meshCheck,$meshModels,$meshTerms,$meshTerritory,$meshOverride)){$control.Enabled=$false}
  try {
   if([Environment]::OSVersion.Version.Build -lt 19041){throw 'Windows 10 build 19041 or newer is required.'}
   if(!$StageTestRoot -and (Get-Process Dyanari -ErrorAction SilentlyContinue)){throw 'Close Dyanari before installing or updating.'}
   $imageChoice=$imageModels.SelectedIndex
   if($imageCheck.Checked){if($imageChoice -le 0){throw 'Select an image bundle or turn off optional image setup'};if(!$imageTerms.Checked){throw 'Review and accept Qwen model terms before image setup'};$ib=$imageCatalog.bundles[$imageChoice-1];if(($ram+0.5 -lt $ib.ram -or $vram -lt $ib.vram) -and !$imageOverride.Checked){throw 'Selected image bundle exceeds hardware guidance. Choose the recommended tier, skip, or explicitly override.'}}
+  if($meshCheck.Checked){if($meshModels.SelectedIndex -le 0 -or !$meshTerms.Checked){throw 'Select a 3D bundle and review/accept its terms'};$mb=$meshCatalog.bundles[$meshModels.SelectedIndex-1];if($mb.id -eq 'hunyuan' -and !$meshTerritory.Checked){throw 'Hunyuan requires territorial eligibility or separate rights; UK, EU and South Korea excluded'};if(($ram+0.5 -lt $mb.ram -or $vram -lt $mb.vram) -and !$meshOverride.Checked){throw 'Selected 3D backend exceeds hardware guidance; choose a smaller backend or explicitly override'}}
   $choice=$models.SelectedIndex;$required=6;if($choice -lt $catalog.Count){$required=[math]::Ceiling(6+3*$catalog[$choice].bytes/1GB)}
   if($choice -lt $catalog.Count -and $ram -lt 7.5){throw 'At least 8 GB RAM is recommended. Choose application-only setup on this machine.'}
   if($imageCheck.Checked){$required+=[math]::Ceiling(8+$ib.bytes/1GB)}
+  if($meshCheck.Checked){$required+=[math]::Ceiling(12+$mb.bytes/1GB)}
   if((New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($install))).AvailableFreeSpace -lt $required*1GB){throw "At least $required GiB free disk space is required."}
   foreach($dir in @($install,$data,$cache)){[void][IO.Directory]::CreateDirectory($dir)}
   $ollamaZip=Join-Path $cache 'ollama-v0.40.13.zip'
@@ -132,7 +144,7 @@ $installAction={
   Copy-Item -LiteralPath $payload -Destination "$install\Dyanari.exe.new" -Force
   Check-Hash "$install\Dyanari.exe.new" (Get-FileHash $payload).Hash
   Move-Item -LiteralPath "$install\Dyanari.exe.new" -Destination "$install\Dyanari.exe" -Force
-  foreach($extra in @('QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){ $extraSource=Join-Path $PSScriptRoot $extra;if(!(Test-Path -LiteralPath $extraSource)){$extraSource=Join-Path (Split-Path $PSScriptRoot -Parent) $extra};[void][IO.Directory]::CreateDirectory((Split-Path (Join-Path $install $extra) -Parent));Copy-Item -LiteralPath $extraSource -Destination (Join-Path $install $extra) -Force }
+  foreach($extra in @('MODLY.md','THIRD-PARTY-MODLY.txt','setup-modly.ps1','modly-catalog.json','modly-runtime/setup.py','modly-runtime/worker.py','modly-runtime/shape/pyproject.toml','modly-runtime/shape/uv.lock','modly-runtime/trellis/pyproject.toml','modly-runtime/trellis/uv.lock','QWEN-IMAGE.md','setup-images.ps1','image-catalog.json','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','setup-voicestudio.ps1','VOICESTUDIO.md')){ $extraSource=Join-Path $PSScriptRoot $extra;if(!(Test-Path -LiteralPath $extraSource)){$extraSource=Join-Path (Split-Path $PSScriptRoot -Parent) $extra};[void][IO.Directory]::CreateDirectory((Split-Path (Join-Path $install $extra) -Parent));Copy-Item -LiteralPath $extraSource -Destination (Join-Path $install $extra) -Force }
   $config=@{installed=$true;dataPath=$data}
   if(Test-Path "$install\installation.json"){$old=Get-Content "$install\installation.json" -Raw|ConvertFrom-Json;if($old.defaultModel){$config.defaultModel=$old.defaultModel}}
   $config|ConvertTo-Json|Set-Content "$install\installation.json" -Encoding UTF8
@@ -153,6 +165,7 @@ $installAction={
   }
   $config|ConvertTo-Json|Set-Content "$install\installation.json" -Encoding UTF8
   if($imageCheck.Checked){$psImage=Join-Path $PSHOME 'powershell.exe';$imageArgs='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '+[char]34+(Join-Path $install 'setup-images.ps1')+[char]34+' -BundleId '+$ib.id+' -AcceptResearchTerms';if($vram -eq 0){$imageArgs+=' -Cpu'};Run $psImage $imageArgs}
+  if($meshCheck.Checked){$psMesh=Join-Path $PSHOME 'powershell.exe';$meshArgs='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '+[char]34+(Join-Path $install 'setup-modly.ps1')+[char]34+' -BundleId '+$mb.id+' -AcceptModelTerms';if($mb.id -eq 'hunyuan'){$meshArgs+=' -HunyuanTerritoryEligible'};Run $psMesh $meshArgs}
   if(!$StageTestRoot){
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari.lnk'));$shortcut.TargetPath="$install\Dyanari.exe";$shortcut.WorkingDirectory=$install;$shortcut.Save()
@@ -162,11 +175,11 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.9.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.10.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true
- }catch{$status.Text=$_.Exception.Message;if($StageTestRoot){throw};[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Dyanari Setup')|Out-Null;$button.Enabled=$true;$models.Enabled=$true;foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride)){$control.Enabled=$true}}
+ }catch{$status.Text=$_.Exception.Message;if($StageTestRoot){throw};[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Dyanari Setup')|Out-Null;$button.Enabled=$true;$models.Enabled=$true;foreach($control in @($imageCheck,$imageModels,$imageTerms,$imageOverride,$meshCheck,$meshModels,$meshTerms,$meshTerritory,$meshOverride)){$control.Enabled=$true}}
  finally{$script:running=$false;$cancel.Enabled=$true;$cancel.Text='Close';if($script:complete){$button.Enabled=$false;if(!$StageTestRoot){Start-Process -FilePath "$install\Dyanari.exe"}}}
 }
 $button.add_Click($installAction)

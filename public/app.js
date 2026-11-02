@@ -85,6 +85,7 @@ async function refresh(history = false) {
   $("screenEnabled").checked = !!s.screen;
   $("screenLabel").textContent = s.screen ? "ON" : "OFF";
   $("creativeEnabled").checked = !!s.creative;
+  $('meshEnabled').checked=!!s.meshEnabled;
   $("spontaneousImages").checked=!!s.spontaneousImages;$("imageIdeaTheme").value=s.imageIdeaTheme;$("imageIdeaMinutes").value=s.imageIdeaMinutes;$("imageDailyLimit").value=s.imageDailyLimit;
   $("speakReplies").checked = !!s.speakReplies;
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
@@ -338,6 +339,7 @@ $("chatForm").onsubmit = (e) => {
               "Tool " + v.tool + ": " + JSON.stringify(v.result).slice(0, 180),
             );
           if(v.tool==="generate_image"&&v.result?.id)await showChatArtwork(v.result.id,output.parentElement);
+          if(v.tool==='generate_stl'&&v.result?.id)meshDownloadButtons(v.result.id,output.parentElement);
           if (v.error) throw Error(v.error);
           $("messages").scrollTop = $("messages").scrollHeight;
         }
@@ -1042,3 +1044,14 @@ $('saveImageInspiration').onclick=()=>safe(async()=>{await updateSettings({spont
 const chatArtworkUrls=new Set();
 async function showChatArtwork(id,parent){if(!/^[a-f0-9-]{36}$/.test(id))return;const r=await fetch('/api/artwork?id='+encodeURIComponent(id),{headers:{'X-Dyanari-Token':token}});if(!r.ok)return;const url=URL.createObjectURL(await r.blob()),img=document.createElement('img');chatArtworkUrls.add(url);img.src=url;img.alt='Image generated locally by Dyanari';img.className='generatedImage';parent.append(img)}
 setInterval(()=>{if(state?.settings.spontaneousImages)safe(async()=>{const v=await api('creative/state');renderImageRuntime(v);if(v.artworks[0]?.id&&!document.querySelector(`[data-artwork="${v.artworks[0].id}"]`))await refreshCreative()})},15000);
+
+let meshState;
+function meshDownloadButtons(id,parent){const preview=document.createElement('button');preview.textContent='Preview 3D';preview.onclick=()=>safe(()=>window.previewDyanariMesh(id,parent,token));parent.append(preview);for(const format of ['stl','glb']){const button=document.createElement('button');button.textContent='Download '+format.toUpperCase();button.onclick=()=>safe(async()=>{const r=await fetch('/api/mesh?id='+encodeURIComponent(id)+'&format='+format,{headers:{'X-Dyanari-Token':token}});if(!r.ok)throw Error('Mesh download failed');const url=URL.createObjectURL(await r.blob()),link=document.createElement('a');link.href=url;link.download='Dyanari-'+id+'.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000)});parent.append(button)}}
+function meshLicence(){const b=meshState?.bundles.find(b=>b.id===$('meshBackend').value);$('meshLicense').replaceChildren();if(!b)return;const a=document.createElement('a');a.href=b.licenseUrl;a.target='_blank';a.rel='noreferrer';a.textContent=b.license;$('meshLicense').append(a);$('meshTerms').checked=false;$('meshTerritory').checked=false;}
+async function refreshMesh(){const v=await api('3d/state');meshState=v;const previous=$('meshBackend').value;$('meshHardware').textContent=`${v.hardware.ram} GB RAM · ${v.hardware.gpu} · ${v.hardware.vram.toFixed(1)} GB VRAM. Recommended: ${v.hardware.recommended||'no suitable default'}.`;$('meshBackend').replaceChildren();for(const b of v.bundles){const o=document.createElement('option');o.value=b.id;o.textContent=`${b.name} · ${(b.bytes/1e9).toFixed(2)} GB weights · ${b.installed?'installed':'not installed'}${b.suitable?'':' · below hardware guidance'}`;$('meshBackend').append(o)}$('meshBackend').value=v.bundles.some(b=>b.id===previous)?previous:v.hardware.recommended||v.bundles[0].id;if(!previous)meshLicence();$('meshStatus').textContent=v.job?`${v.job.status} · ${v.job.progress}%`:v.setup?'Installing '+v.setup.bundle:v.lastSetup? (v.lastSetup.ok?'Setup completed.':v.lastSetup.error||'Setup failed; see modly-setup.log'):'Ready for an installed backend. 3D generation requires both studio switches.';$('meshLibrary').replaceChildren();for(const mesh of v.meshes){const r=mesh.report;const div=document.createElement('div');div.className='card';const text=document.createElement('p');text.textContent=`${mesh.backend} · ${mesh.prompt||mesh.source} · ${r.triangles.toLocaleString()} triangles · ${r.extents_mm.map(n=>n.toFixed(1)).join(' × ')} mm · ${r.watertight?'watertight topology; inspect in slicer':'not watertight; needs repair'}`;div.append(text);meshDownloadButtons(mesh.id,div);$('meshLibrary').append(div)}}
+$('meshEnabled').onchange=()=>safe(()=>updateSettings({meshEnabled:$('meshEnabled').checked}));
+$('refreshMesh').onclick=()=>safe(refreshMesh);$('meshBackend').onchange=meshLicence;
+$('installMesh').onclick=()=>safe(async()=>{await api('3d/install',{bundle:$('meshBackend').value,approved:true,acceptTerms:$('meshTerms').checked,hunyuanTerritoryEligible:$('meshTerritory').checked,overrideHardware:$('meshHardwareOverride').checked});await refreshMesh();notice('Local 3D setup started; progress is in modly-setup.log.')});
+$('stopMesh').onclick=()=>safe(async()=>{await api('3d/stop',{});await refreshMesh()});
+$('generateMesh').onclick=()=>safe(async()=>{const a={backend:$('meshBackend').value,size_mm:Number($('meshSize').value),quality:$('meshQuality').value},kind=$('meshInputKind').value;if(kind==='upload'){const f=$('meshImage').files[0];if(!f||f.size>20*1024*1024)throw Error('Select an image up to 20 MB');a.image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(f)})}else a[{prompt:'prompt',artwork:'image_id',workspace:'image_path'}[kind]]=$('meshPrompt').value;$('meshStatus').textContent='Generating locally; this can take several minutes.';$('generateMesh').disabled=true;try{const result=await api('3d/generate',a);notice(result.warning)}finally{$('generateMesh').disabled=false;await refreshMesh()}});
+setInterval(()=>{if(state?.settings.meshEnabled)safe(refreshMesh)},5000);

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {ModlyEngine,modlyDefinitions,validateMeshSettings} from './modly.mjs';
 import {VoiceStudio,validateStudio} from './voicestudio.mjs';
 import path from "node:path";
 import crypto from "node:crypto";
@@ -32,6 +33,7 @@ export const defaults = {
   proactive: false,
   screen: false,
   creative: false,
+  meshEnabled: false,
   spontaneousImages: false,
   imageIdeaTheme: 'Quiet landscapes, astronomy, imaginative places and original art',
   imageIdeaMinutes: 60,
@@ -103,6 +105,7 @@ export class Core {
     this.scheduler = new Scheduler(this);
     this.resources = new ResourceManager(this.dir);
     this.creative = new CreativeEngine(this);
+    this.modly = new ModlyEngine(this);
     this.actions = new ActionEngine(this);
     this.development = new DevelopmentEngine(this);
     this.linkedProjects = new LinkedProjectEngine(this);
@@ -124,6 +127,7 @@ export class Core {
     )
       return s.proactive;
     if (name === "generate_image") return s.creative;
+    if (name === 'generate_stl'||name === 'list_3d_models') return s.creative&&s.meshEnabled;
     if (!s.tools) return false;
     if (["list_windows", "inspect_window"].includes(name)) return s.computer;
     if (["set_control_text", "invoke_control"].includes(name))
@@ -174,6 +178,7 @@ export class Core {
       this.agentTasks?.pauseAll('Settings changed in another instance');
       this.voiceStudio?.reconcile();
       this.creative?.qwen.reconcile();
+      this.modly?.reconcile();
     }
     return this._settings;
   }
@@ -218,6 +223,7 @@ export class Core {
       throw Error("Unsupported autonomous workflow");
     validateStudio(s);
     validateImageSettings(s);
+    validateMeshSettings(s);
     if (typeof s.voice !== "string" || s.voice.length > 200)
       throw Error("Invalid voice name");
     for (const k of ["quietStart", "quietEnd"])
@@ -289,6 +295,7 @@ export class Core {
     this.settings = s;
     this.voiceStudio?.reconcile();
     this.creative?.qwen.reconcile();
+    this.modly?.reconcile();
     this.creative?.inspiration.settingsChanged(v);
     this.db
       .prepare("INSERT OR REPLACE INTO settings VALUES(1,?)")
@@ -503,6 +510,8 @@ export class Core {
     if (!a || typeof a !== "object" || Array.isArray(a))
       throw Error("Invalid tool arguments");
     this.log("tool", name + " " + JSON.stringify(a));
+    if(name==='list_3d_models'){this.modly.enabled();return this.modly.state()}
+    if(name==='generate_stl'){const release=this.resources.acquire('3D generation');try{return await this.modly.generate(a,signal)}finally{release()}}
     if(linkedProjectDefinitions.some(([n])=>n===name))return this.linkedProjects.execute(name,a,signal);
     if (developmentDefinitions.some(([n]) => n === name)) return this.development.execute(name, a, signal);
     if (actionDefinitions.some(([n]) => n === name))
@@ -604,6 +613,7 @@ export const toolDefinitions = [
   ...fileDefinitions,
   ...schedulerDefinitions,
   ...creativeDefinitions,
+  ...modlyDefinitions,
   ["list_files", "List an approved directory", { path: "string" }],
   [
     "read_file",
@@ -646,7 +656,7 @@ export const toolDefinitions = [
         Object.entries(props).map(([k, type]) => [k, type === 'array' ? {type,items:{type:'string'}} : { type }]),
       ),
       required: Object.keys(props).filter(
-        (k) => !(name === "write_file" && k === "expected_sha256") && !(name === "generate_image" && k !== "prompt"),
+        (k) => name!=='generate_stl' && !(name === "write_file" && k === "expected_sha256") && !(name === "generate_image" && k !== "prompt"),
       ),
       additionalProperties: false,
     },

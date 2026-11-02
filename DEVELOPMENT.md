@@ -9,6 +9,7 @@
 - `linked-projects.mjs`: local stdio MCP clients, pinned REA installation and tool approvals.
 - `files.mjs`, `scheduler.mjs`, `voice.mjs`, `vision.mjs`, `creative.mjs`, `resources.mjs`: scoped files and optional local services.
 - `desktop/`: self-contained .NET 10 WinForms/WebView2 app, embedded Node payload and lifecycle.
+- `modly.mjs`, `modly-runtime/`, `setup-modly.ps1`, `modly-catalog.json`: private one-shot Modly generation, frozen per-family dependencies, pinned native wheels/weights and bounded inspected STL export. Read MODLY.md. Hunyuan's UK/EU/South Korea exclusion must remain explicit; do not activate without eligibility/separate rights.
 - `action-helper/`: self-contained Windows UI Automation helper.
 - `installer/`: self-contained bootstrapper and PowerShell wizard. Runtime/model downloads are separate from the installer binary.
 
@@ -41,6 +42,8 @@ Wait for passing checks on the exact PR head, merge, point the release tag at th
 
 VoiceStudio bridge: voicestudio.mjs, voicestudio-launch.py, setup-voicestudio.ps1. Read VOICESTUDIO.md and RELEASE-0.8.md. Source/runtime/model pins live in the optional setup script; setup requires explicit Internet and model terms consent. Managed source/weights are in %USERPROFILE%\.dyanari\voicestudio; profiles are under the actual data directory. Run voicestudio.test.mjs and voicestudio-http-integration.mjs. The real CPU TTS/Whisper/restart check is separate from fixtures. Never infer fresh-machine or microphone acceptance from it.
 
-For a side-by-side local build while the user is running Dyanari, use -OutputName Dyanari-0.9.0.exe; it shares the adjacent portable data but does not overwrite or close their active executable. The installer still embeds the newly built desktop/publish/Dyanari.exe.
+For a side-by-side local build while the user is running Dyanari, use -OutputName Dyanari-0.10.0.exe; it shares the adjacent portable data but does not overwrite or close their active executable. The installer still embeds the newly built desktop/publish/Dyanari.exe.
 
 Image implementation: qwen-image.mjs (catalog/runtime/graph), image-inspiration.mjs (decision ledger/budget/pause), creative.mjs (render and actual PNG persistence), setup-images.ps1 and image-runtime/ (frozen dependencies and CPU encoder adapter). Read QWEN-IMAGE.md. Default private runtime is %USERPROFILE%\.dyanari\images; request port 8189 is separate from legacy ComfyUI 8188. Test overrides are DYANARI_IMAGE_HOME and DYANARI_QWEN_PORT; use an isolated absolute directory and loopback numeric port. CI runs qwen-image.test.mjs and qwen-image-http-integration.mjs. Actual Q2/Q4/model-inspiration/voice WAV evidence is separate from fixtures. A normal desktop shutdown cancels work without changing inspiration opt-in; explicit Stop persists its pause.
+
+0.10 uses -OutputName Dyanari-0.10.0.exe. Run modly.test.mjs and modly-http-integration.mjs; the HTTP fixture requires Python 3.11 (CI provisions it) and uses sparse placeholder files, not model downloads. DYANARI_TEST_PYTHON can identify an existing test interpreter. DYANARI_MODLY_HOME controls the private runtime root. Real GPU inference and scene-transform/scale checks are separate evidence. Generated assets and models must not enter Git/releases; canonical memory is unchanged.
