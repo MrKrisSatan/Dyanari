@@ -1,15 +1,19 @@
 {
   "name": "dyanari",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test installer-download.test.mjs modly.test.mjs qwen-image.test.mjs voicestudio.test.mjs test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs project-checks.test.mjs validation.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs agent-tasks.test.mjs",
+    "test": "node --test reply-speech.test.mjs research.test.mjs chat-features.test.mjs documents.test.mjs installer-download.test.mjs modly.test.mjs qwen-image.test.mjs voicestudio.test.mjs test.mjs files.test.mjs scheduler.test.mjs creative.test.mjs memory-models.test.mjs actions.test.mjs action-concurrency.test.mjs project-checks.test.mjs validation.test.mjs development.test.mjs linked-projects.test.mjs memory-ledger.test.mjs agent-tasks.test.mjs",
     "test:services": "node --test optional-services.test.mjs vision.test.mjs",
     "test:integration": "node integration.mjs"
   },
   "engines": {
     "node": ">=24"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.5.438",
+    "saxes": "6.0.0"
   }
 }

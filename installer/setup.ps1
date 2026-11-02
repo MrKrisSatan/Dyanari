@@ -192,7 +192,7 @@ $installAction={
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.10.1';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.11.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true

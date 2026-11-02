@@ -14,6 +14,7 @@
       <nav>
         <button data-tab="chat">Conversation</button
         ><button data-tab="memory">Memory</button
+        ><button data-tab="research">Research</button
         ><button data-tab="tools">Tools & permissions</button
         ><button data-tab="actions">Computer & checks</button
         ><button data-tab="development">Development</button
@@ -70,6 +71,19 @@
         >
       </div>
       <section id="chat" class="page">
+        <div class="row chatToolbar">
+          <label><input id="chatVoice" type="checkbox" /> Speak replies</label>
+          <button id="chatStopSpeech" type="button">Stop voice</button>
+          <button id="chatOpenFeatures" type="button">All features</button>
+          <button id="chatOpen3d" type="button">3D models</button>
+          <span id="chatVoiceStatus" class="muted" role="status"></span>
+        </div>
+        <details id="chatFeaturePanel">
+          <summary>Use a feature alongside this conversation</summary>
+          <div class="row"><select id="chatFeatureSelect" aria-label="Chat feature"></select><button id="chatFeatureOpen" type="button">Open</button><button id="chatFeatureClose" type="button">Close panel</button></div>
+          <div id="chatFeatureBody"></div>
+        </details>
+        <p id="chatJobStatus" class="muted" role="status" aria-live="polite"></p>
         <div id="messages">
           <div class="welcome">
             <div class="orb">D</div>
@@ -147,6 +161,15 @@
           <input type="file" id="restoreFile" accept=".json" /></label
         ><button id="restore">Restore and merge</button>
       </section>
+      <section id="research" class="page hidden">
+        <h2>Research & source notebook</h2>
+        <p>Ask in the main chat: “Research Iron Warriors Space Marines, explain their history and appearance, and retain the sources for later images.” Google runs in a separate background browser; readable source excerpts are stored locally, independently of the chat model. Internet Access must be ON. Private research is not retained.</p>
+        <label><input id="retainResearch" type="checkbox" /> Retain researched sources for later recall</label>
+        <button id="refreshResearch" type="button">Refresh research notebook</button>
+        <p id="researchStatus" role="status"></p>
+        <p>Saved information is dated evidence, not permanent truth or model training. Ask for refreshed research when facts may have changed. Image prompts should use supported visual details; generated images still need inspection.</p>
+        <div id="researchNotes"></div>
+      </section>
       <section id="tools" class="page hidden">
         <h2>Permission is yours</h2>
         <p>
@@ -174,6 +197,7 @@
         <select id="toolName">
           <option>list_files</option>
           <option>read_file</option>
+          <option>read_document</option>
           <option>write_file</option>
           <option>edit_file</option>
           <option>fetch_page</option>
@@ -356,8 +380,10 @@
           <label>Saved identity <select id="studioProfile"></select></label>
           <label>Engine <select id="studioEngine"><option value="omnivoice">omnivoice</option></select></label>
           <label>Speed <input id="studioSpeed" type="number" min="0.5" max="1.5" step="0.01" value="0.94"></label><button id="studioSave">Use selected voice</button>
+          <label>Voice device <select id="studioDevice"><option value="auto">Automatic — NVIDIA GPU when installed</option><option value="cpu">CPU</option><option value="cuda">NVIDIA GPU</option></select></label>
+          <label><input type="checkbox" id="studioCuda" /> Include optional NVIDIA acceleration in Install / repair</label>
           <button id="studioOpen">Open full VoiceStudio: design, cloning, dubbing & audiobooks</button>
-          <p>VoiceStudio has its own history, permissions and model terms. Dyanari’s Internet switch is not a firewall for external software. Use only authorised reference voices. Private conversation text is not sent to VoiceStudio.</p>
+          <p>VoiceStudio has its own history, permissions and model terms. Dyanari’s Internet switch is not a firewall for external software. Use only authorised reference voices. Private speech uses only Dyanari’s managed local OmniVoice service; external voice services are blocked in private sessions.</p>
           <label>Transcribe a short WAV locally (under 650 KB)<input id="studioAudio" type="file" accept="audio/wav"></label><button id="studioTranscribe">Transcribe for review</button><textarea id="studioTranscript" readonly placeholder="Review transcription here; nothing is sent to chat automatically"></textarea>
           <h4>Windows microphone recognition</h4>
           <label
@@ -569,6 +595,6 @@
       </section>
       <div id="notice" role="status"></div>
     </main>
-    <script src="/mesh-viewer.js"></script><script src="/app.js"></script>
+    <script src="/mesh-viewer.js"></script><script src="/reply-speech.js"></script><script src="/app.js"></script>
   </body>
 </html>

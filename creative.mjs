@@ -166,6 +166,8 @@ export class CreativeEngine {
       a.negative.length > 3000
     )
       throw Error("Invalid image prompt");
+    const researched=this.core.research?.visualBrief(a.prompt);
+    if(researched?.text&&a.prompt.length<2700)a.prompt+='\nResearched appearance details: '+researched.text.slice(0,3000-a.prompt.length-32);
     for (const n of ["width", "height"])
       if (!Number.isInteger(a[n]) || a[n] < 256 || a[n] > 1024 || a[n] % 64)
         throw Error(

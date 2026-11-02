@@ -1,9 +1,9 @@
 {
-  "version": "0.10.1",
-  "sha256": "fe40fa2820719e3af8a14e66a33110f3d5f17f21e1bc3f95872b0ba73c31bde1",
-  "bytes": 158230236,
-  "sourceCommit": "7fc54b0f3cb0271c5091a610c8632e515b92985b",
-  "automatedTests": 124,
+  "version": "0.11.0",
+  "sha256": "294f3d2a7e47ffc3a277fbdb22a3a025939c48feeed317a9b768765a1ed2e9d5",
+  "bytes": 183993052,
+  "sourceCommit": "f38ca7682237a9b232f3bc088b797fe4c66e072b",
+  "automatedTests": 148,
   "desktopPayloadSelfTest": "passed",
   "realFileEditIntegration": "passed",
   "localVision": "passed",
@@ -19,9 +19,9 @@
     "freshMachine": "Fresh Dyanari install on existing Windows 11 machine passed with setup fixes; pristine OS/WebView2 install and uninstall preservation not verified",
     "stageInstall": "passed: isolated app-only install, real verified Ollama extraction and version check",
     "modelCatalog": "3 pinned Hugging Face GGUFs, SHA-256 and byte sizes verified",
-    "file": "DyanariSetup-0.10.1.exe",
-    "sha256": "8575a1856b5048e7eb10e9e64a31dde25aba3d30c8c4c0d911e31127a1f5f626",
-    "bytes": 210276435
+    "file": "DyanariSetup-0.11.0.exe",
+    "sha256": "2963d8631b63ceff068cf0e8354c856d701e30613f9bf2f83d2f357f56a8b364",
+    "bytes": 236040275
   },
   "development": {
     "actualProjectTests": 7,
@@ -54,7 +54,7 @@
   "projectTasks": {
     "realModel": "passed: Qwen3 4B Instruct, exact approval, actual command marker and automatic continuation",
     "tracker": "TODO.md, AGENTS.md, DEVELOPMENT.md",
-    "nextReady": "REL-01 with clean VM; otherwise DOC-01",
+    "nextReady": "DOC-02; CHAT-01 native dialog acceptance; AGT-03 relevant tool routing",
     "nativeUi": "verified: task mode, workspace, original request, required verification and default OFF controls",
     "unitTests": 14,
     "recovery": "restart, second host and revocation pause; old approvals invalidated; no mutation replay",
@@ -71,10 +71,21 @@
     "privateTerms": "public installers leave model consent unset",
     "realSpeech": "Passed: new saved British Velvet identity and actual preview WAV",
     "voice": "British Velvet: fully voiced mature female British contralto, seed 424243, speed 0.94; whisper instruction removed",
-    "gpuVoice": "not validated; managed runtime uses CPU",
-    "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c"
+    "gpuVoice": "RTX 4080 SUPER, separate torch 2.8.0+cu128 runtime, saved identity",
+    "sourceRevision": "5bfbda36886e8555317eb2f5816784ccad28f42c",
+    "gpuSynthesisSeconds": {
+      "isolated": [
+        5.048,
+        0.912
+      ],
+      "installedApi": [
+        1.347,
+        0.652
+      ]
+    },
+    "streamingQueue": "two tests: early sentence synthesis, bounded prefetch, cancellation; physical audible timing not measured"
   },
-  "desktopFile": "Dyanari-0.10.1.exe",
+  "desktopFile": "Dyanari-0.11.0.exe",
   "qwenImages": {
     "httpAcceptance": "passed",
     "bundles": 9,
@@ -152,7 +163,7 @@
     "httpAcceptance": "passed: authenticated fixture process, mesh downloads, private chat tool continuation, cancellation, revocation, restore",
     "bundles": 6
   },
-  "verificationScope": "Current run: 117 service-independent Node tests plus 7 Python installer tests; six HTTP acceptance scripts and packaged checks counted separately. Other retained entries describe earlier release acceptance.",
+  "verificationScope": "0.11: 141 service-independent Node tests, 7 Python installer tests, 8 HTTP acceptance scripts, desktop self-test, 49 installer checks and extracted-payload document smoke. Retained older fields describe previous release acceptance.",
   "secondMachine": {
     "date": "2026-11-02",
     "os": "Windows 11 Home x64 build 26200",
@@ -218,5 +229,31 @@
       "internet": false,
       "files": false
     }
+  },
+  "documents": {
+    "formats": [
+      "pdf",
+      "docx",
+      "xlsx"
+    ],
+    "unitTests": 9,
+    "httpAcceptance": "passed",
+    "packagedSmoke": "passed",
+    "realModel": "Qwen3 8B: actual spreadsheet read and correct cells, 8.4 seconds, isolated private history unchanged"
+  },
+  "research": {
+    "unitTests": 9,
+    "httpAcceptance": "passed: failed and disabled research do not call model",
+    "realDesktop": "Google plus direct Lexicanum article; retained source recall",
+    "exactInstalledRequest": "research Iron Warriors Space Marines: official Warhammer Community source read and saved in 5.892 seconds",
+    "realModel": "Qwen3 8B corrected conflicting prior lore and cited retrieved Lexicanum evidence in 8.636 seconds",
+    "limitations": "Source blockers/human verification remain; no exhaustive correctness claim"
+  },
+  "chatWorkflows": {
+    "catalogCoverage": "passed",
+    "nativeSaveAs": "implemented; dialog interaction not automated",
+    "exports": "actual STL/OBJ/PLY independently inspected; matching dimensions, triangle counts and watertightness; GLB download verified",
+    "singleResponse": "actual one generate_stl call: Qwen image to Tripo, source image and mesh returned",
+    "printReadyCertified": false
   }
 }

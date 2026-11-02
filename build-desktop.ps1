@@ -1,6 +1,8 @@
 param([string]$Dotnet = 'dotnet', [ValidatePattern('^[A-Za-z0-9._-]+\.exe$')][string]$OutputName='Dyanari.exe')
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
+& npm ci --ignore-scripts
+if ($LASTEXITCODE -ne 0) { throw 'Pinned document dependency installation failed' }
 & $Dotnet publish action-helper\Dyanari.Actions.csproj -c Release -r win-x64 --self-contained true -o runtime\actions -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) { throw 'Action helper build failed' }
 $payload = Join-Path $PSScriptRoot 'desktop\app-payload.zip'
@@ -8,6 +10,25 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $payload) { Remove-Item -LiteralPath $payload }
 $zip = [System.IO.Compression.ZipFile]::Open($payload, 'Create')
 try {
+  foreach ($file in @('research.mjs','mesh-export.mjs','chat-features.mjs','documents.mjs','document-worker.mjs','document-smoke.mjs','DOCUMENTS.md','package.json','package-lock.json','test-fixtures/documents/example.pdf','test-fixtures/documents/example.docx','test-fixtures/documents/example.xlsx')) {
+    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $PSScriptRoot $file), $file, 'Optimal') | Out-Null
+  }
+  $dependencies = & .\runtime\node.exe -e "process.stdout.write(JSON.stringify(Object.entries(JSON.parse(require('fs').readFileSync('package-lock.json')).packages).filter(([name])=>name).map(([name,p])=>({name,version:p.version,optional:p.optional}))))"
+  if ($LASTEXITCODE -ne 0) { throw 'Could not read dependency lock' }
+  foreach ($entry in ($dependencies | ConvertFrom-Json)) {
+    $folder = Join-Path $PSScriptRoot $entry.name
+    if (!(Test-Path -LiteralPath $folder)) {
+      if ($entry.optional) { continue }
+      throw "Missing dependency $($entry.name)"
+    }
+    $installed = Get-Content -LiteralPath (Join-Path $folder 'package.json') -Raw | ConvertFrom-Json
+    if ($installed.version -ne $entry.version) { throw "Dependency version mismatch: $($entry.name)" }
+    Get-ChildItem -LiteralPath $folder -File -Recurse | ForEach-Object {
+      if ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { throw 'Linked dependency files are not supported' }
+      $relative = $_.FullName.Substring($PSScriptRoot.Length + 1).Replace('\','/')
+      [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $relative, 'Optimal') | Out-Null
+    }
+  }
   foreach ($file in @('modly.mjs','MODLY.md','THIRD-PARTY-MODLY.txt','setup-modly.ps1','modly-catalog.json','modly-runtime/setup.py','modly-runtime/worker.py','modly-runtime/shape/pyproject.toml','modly-runtime/shape/uv.lock','modly-runtime/trellis/pyproject.toml','modly-runtime/trellis/uv.lock','QWEN-IMAGE.md','qwen-image.mjs','image-inspiration.mjs','image-catalog.json','setup-images.ps1','image-runtime/pyproject.toml','image-runtime/uv.lock','image-runtime/dyanari_qwen_node.py','voicestudio-launch.py','setup-voicestudio.ps1','VOICESTUDIO.md','server.mjs','voicestudio.mjs','core.mjs','agent-tasks.mjs','memory.mjs','memory-ledger.mjs','voice.mjs','files.mjs','scheduler.mjs','creative.mjs','vision.mjs','resources.mjs','actions.mjs','development.mjs','linked-projects.mjs','validation.mjs')) {
     if (Test-Path -LiteralPath $file) { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $PSScriptRoot $file), $file, 'Optimal') | Out-Null }
   }

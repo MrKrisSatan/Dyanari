@@ -162,6 +162,11 @@ b {
   display: flex;
   flex-direction: column;
 }
+.chatToolbar { flex-wrap: wrap; gap: 8px; font-size: 13px; }
+#chatFeaturePanel { border: 1px solid #4a3c60; border-radius: 9px; padding: 10px; margin: 8px 0; flex-shrink: 0; }
+#chatFeatureBody { max-height: 38vh; overflow: auto; }
+#chatFeatureBody > .page { overflow: visible; padding: 12px; }
+.meshSave { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
 #messages {
   flex: 1;
   overflow: auto;
