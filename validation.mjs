@@ -8,9 +8,11 @@ export class ValidationTracker {
       );
     this.checks = new Map();
     this.retries = 0;
+    this.pendingDevelopment = false;
   }
   observe(name, result) {
     if (!result || result.error) return;
+    if (result.pending && /^(git_|github_|run_project_recipe)/.test(name)) this.pendingDevelopment = true;
     if (name === "check_project_file" && typeof result.passed === "boolean")
       this.checks.set(result.path, result.passed);
     if (
@@ -37,10 +39,10 @@ export class ValidationTracker {
   }
   warning() {
     const files = this.unresolved();
-    return files.length
+    return (files.length
       ? "\n\nVerification: syntax validation has not passed for " +
           files.join(", ") +
           "."
-      : "";
+      : "") + (this.pendingDevelopment ? '\n\nDevelopment: waiting for your approval in the Development page. Requested operations have not executed.' : '');
   }
 }

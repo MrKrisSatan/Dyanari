@@ -87,6 +87,7 @@ async function refresh(history = false) {
   $("speakReplies").checked = !!s.speakReplies;
   if ($("voiceSelect").options.length) $("voiceSelect").value = s.voice;
   renderComputerState(s, state.actions);
+  renderDevelopment(s,state.development);
   $("quietStart").value = s.quietStart;
   $("quietEnd").value = s.quietEnd;
   $("modelSelect").replaceChildren();
@@ -899,3 +900,32 @@ for (const name of [
   option.textContent = name;
   $("toolName").append(option);
 }
+
+function renderDevelopment(s, dev) {
+  $('gitAccess').checked=!!s.gitAccess;$('githubAccess').checked=!!s.githubAccess;$('developmentAccess').checked=!!s.development;
+  if(document.activeElement!==$('githubRepositories'))$('githubRepositories').value=(s.githubRepositories||[]).join('\n');
+  if(document.activeElement!==$('gitAuthorName'))$('gitAuthorName').value=s.gitAuthorName||'';
+  if(document.activeElement!==$('gitAuthorEmail'))$('gitAuthorEmail').value=s.gitAuthorEmail||'';
+  $('developmentTools').textContent=Object.entries(dev?.available||{}).map(([name,file])=>name+': '+(file?'installed':'not installed')).join(' · ');
+  $('projectRecipes').replaceChildren();
+  for(const r of s.projectRecipes||[])card($('projectRecipes'),r.name+'\n'+r.path+'\n'+r.tool+' '+JSON.stringify(r.args),[
+    ['Preview run',async()=>{const result=await api('tool',{name:'run_project_recipe',arguments:{id:r.id}});notice(result.message);await refresh()}],
+    ['Remove recipe',async()=>updateSettings({projectRecipes:state.settings.projectRecipes.filter(x=>x.id!==r.id)})]
+  ]);
+  $('developmentApprovals').replaceChildren();
+  for(const p of dev?.pending||[])card($('developmentApprovals'),p.summary,[
+    ['Approve this operation',async()=>{if(!confirm('Execute this exact operation?\n\n'+p.summary))return;notice('Executing approved operation…');
+      const timer=setInterval(()=>safe(()=>refresh()),1500);
+      try{const result=await api('development/confirm',{id:p.id,approved:true});$('developmentInspection').textContent=JSON.stringify(result,null,2);notice(result.passed===false?'Operation failed. Inspect exit code and logs.':'Operation finished; inspect the result.');}finally{clearInterval(timer);await refresh()}}],
+    ['Reject',async()=>{await api('development/reject',{id:p.id});await refresh()}]
+  ]);
+  $('developmentRuns').replaceChildren();
+  for(const run of dev?.runs||[])card($('developmentRuns'),run.name+' · '+run.status+' · '+run.started+'\n'+(run.error||'')+'\n'+(run.result?.exitCode!==undefined?'Exit code: '+run.result.exitCode+'\n':'')+(run.output||''));
+}
+for(const [id,key]of [['gitAccess','gitAccess'],['githubAccess','githubAccess'],['developmentAccess','development']])$(id).onchange=()=>safe(()=>updateSettings({[key]:$(id).checked}));
+$('saveGithubRepositories').onclick=()=>safe(()=>updateSettings({githubRepositories:$('githubRepositories').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean)}));
+$('githubAccount').onclick=()=>safe(async()=>{$('githubAccountResult').textContent=JSON.stringify(await api('development/account',{}),null,2)});
+$('saveGitAuthor').onclick=()=>safe(()=>updateSettings({gitAuthorName:$('gitAuthorName').value,gitAuthorEmail:$('gitAuthorEmail').value}));
+for(const [id,name]of [['developmentStatus','git_status'],['developmentDiff','git_diff']])$(id).onclick=()=>safe(async()=>{$('developmentInspection').textContent=JSON.stringify(await api('tool',{name,arguments:{path:$('developmentRepo').value}}),null,2)});
+$('addProjectRecipe').onclick=()=>safe(()=>updateSettings({projectRecipes:[...(state.settings.projectRecipes||[]),{id:crypto.randomUUID(),name:$('recipeName').value,path:$('recipePath').value,tool:$('recipeTool').value,args:JSON.parse($('recipeArgs').value),timeoutSeconds:Number($('recipeTimeout').value)}]}));
+$('refreshDevelopment').onclick=()=>safe(()=>refresh());

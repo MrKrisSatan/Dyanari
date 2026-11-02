@@ -7,6 +7,7 @@ import { FileEngine, fileDefinitions } from "./files.mjs";
 import { Scheduler, schedulerDefinitions } from "./scheduler.mjs";
 import { CreativeEngine, creativeDefinitions } from "./creative.mjs";
 import { ResourceManager } from "./resources.mjs";
+import { DevelopmentEngine, developmentDefinitions } from "./development.mjs";
 import {
   ActionEngine,
   actionDefinitions,
@@ -28,6 +29,13 @@ export const defaults = {
   creative: false,
   runTools: false,
   computer: false,
+  gitAccess: false,
+  githubAccess: false,
+  development: false,
+  githubRepositories: [],
+  projectRecipes: [],
+  gitAuthorName: '',
+  gitAuthorEmail: '',
   computerMode: "observe",
   approvedApps: [],
   approvedWorkflows: [],
@@ -76,6 +84,7 @@ export class Core {
     this.resources = new ResourceManager(this.dir);
     this.creative = new CreativeEngine(this);
     this.actions = new ActionEngine(this);
+    this.development = new DevelopmentEngine(this);
   }
   log(kind, detail) {
     this.db
@@ -84,6 +93,7 @@ export class Core {
   }
   toolAvailable(name) {
     const s = this.settings;
+    if (developmentDefinitions.some(([n]) => n === name)) return this.development.allowed(name);
     if (["search_web", "fetch_page"].includes(name)) return s.internet;
     if (
       ["schedule_reminder", "list_reminders", "cancel_reminder"].includes(name)
@@ -134,6 +144,7 @@ export class Core {
       this._settings = { ...defaults, ...JSON.parse(raw || "{}") };
       this.controllers?.forEach((c) => c.abort());
       this.actions?.cancel();
+      this.development?.cancel();
     }
     return this._settings;
   }
@@ -156,6 +167,9 @@ export class Core {
       "speakReplies",
       "runTools",
       "computer",
+      "gitAccess",
+      "githubAccess",
+      "development",
     ])
       if (typeof s[k] !== "boolean") throw Error("Invalid " + k);
     if (!["observe", "assist", "autonomous"].includes(s.computerMode))
@@ -203,8 +217,24 @@ export class Core {
         throw Error("Protected workspace");
       return { path: p, write: w.write };
     });
+    if (!Array.isArray(s.githubRepositories) || s.githubRepositories.length > 100 || s.githubRepositories.some(r => typeof r !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/.test(r) || r.endsWith('.git'))) throw Error('Invalid approved GitHub repositories');
+    if (typeof s.gitAuthorName !== 'string' || s.gitAuthorName.length > 200 || /[\r\n<>]/.test(s.gitAuthorName) || typeof s.gitAuthorEmail !== 'string' || s.gitAuthorEmail.length > 250 || (s.gitAuthorEmail && !/^[^\s<>@]+@[^\s<>@]+$/.test(s.gitAuthorEmail)) || Boolean(s.gitAuthorName) !== Boolean(s.gitAuthorEmail)) throw Error('Provide both a valid Git author name and email, or leave both blank');
+    if (!Array.isArray(s.projectRecipes) || s.projectRecipes.length > 50) throw Error('Invalid project recipes');
+    if (v.workspaces && !Object.hasOwn(v,'projectRecipes')) s.projectRecipes = s.projectRecipes.filter(r => s.workspaces.some(w => w.write && this.inside(w.path,r.path)));
+    const ids = new Set();
+    s.projectRecipes = s.projectRecipes.map(r => {
+      if (!r || typeof r.id !== 'string' || !/^[\w-]{1,80}$/.test(r.id) || ids.has(r.id)) throw Error('Invalid or duplicate recipe id');
+      ids.add(r.id);
+      if (typeof r.name !== 'string' || !r.name.trim() || r.name.length > 120 || !['node','npm','dotnet','python'].includes(r.tool)) throw Error('Invalid recipe name/tool');
+      if (!Array.isArray(r.args) || r.args.length > 100 || r.args.some(a => typeof a !== 'string' || a.length > 8000 || a.includes('\0'))) throw Error('Recipe arguments must be a JSON array of strings');
+      if (!Number.isInteger(r.timeoutSeconds) || r.timeoutSeconds < 1 || r.timeoutSeconds > 1200) throw Error('Recipe timeout must be 1–1200 seconds');
+      const p = fs.realpathSync(r.path);
+      if (this.sensitive(p) || !s.workspaces.some(w => w.write && this.inside(w.path,p))) throw Error('Recipe must be in an approved writable workspace');
+      return {id:r.id,name:r.name,path:p,tool:r.tool,args:r.args,timeoutSeconds:r.timeoutSeconds};
+    });
     this.controllers.forEach((c) => c.abort());
     this.actions?.cancel();
+    this.development?.cancel();
     this.settings = s;
     this.db
       .prepare("INSERT OR REPLACE INTO settings VALUES(1,?)")
@@ -415,6 +445,7 @@ export class Core {
     if (!a || typeof a !== "object" || Array.isArray(a))
       throw Error("Invalid tool arguments");
     this.log("tool", name + " " + JSON.stringify(a));
+    if (developmentDefinitions.some(([n]) => n === name)) return this.development.execute(name, a, signal);
     if (actionDefinitions.some(([n]) => n === name))
       return this.actions.execute(name, a, signal);
     if (fileDefinitions.some(([n]) => n === name))
@@ -516,6 +547,7 @@ export function publicIP(ip) {
   );
 }
 export const toolDefinitions = [
+  ...developmentDefinitions,
   ...actionDefinitions,
   ...fileDefinitions,
   ...schedulerDefinitions,
@@ -559,7 +591,7 @@ export const toolDefinitions = [
     parameters: {
       type: "object",
       properties: Object.fromEntries(
-        Object.entries(props).map(([k, type]) => [k, { type }]),
+        Object.entries(props).map(([k, type]) => [k, type === 'array' ? {type,items:{type:'string'}} : { type }]),
       ),
       required: Object.keys(props).filter(
         (k) => !(name === "write_file" && k === "expected_sha256"),

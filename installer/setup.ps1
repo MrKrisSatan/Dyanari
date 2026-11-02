@@ -93,6 +93,18 @@ $installAction={
   $runtime=Join-Path $install 'runtime\ollama';[void][IO.Directory]::CreateDirectory($runtime)
   $zip=[IO.Compression.ZipFile]::OpenRead($ollamaZip)
   try{foreach($entry in $zip.Entries){Pump;$target=Safe-Target $runtime $entry.FullName;if(!$entry.Name){[void][IO.Directory]::CreateDirectory($target);continue};[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target));[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true)}}finally{$zip.Dispose()}
+  if(!$StageTestRoot){
+   $dependencies=@(
+    @{name='mingit-2.56.0.4.zip';url='https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip';sha='e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877';bytes=39846926;folder='git'},
+    @{name='gh-2.103.3.zip';url='https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_windows_amd64.zip';sha='98d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0';bytes=15197187;folder='gh'}
+   )
+   foreach($dep in $dependencies){
+    $archive=Join-Path $cache $dep.name;Download $dep.url $archive $dep.sha $dep.bytes
+    $targetRoot=Join-Path $install ('runtime\'+$dep.folder);[void][IO.Directory]::CreateDirectory($targetRoot)
+    $zip=[IO.Compression.ZipFile]::OpenRead($archive)
+    try{foreach($entry in $zip.Entries){Pump;$target=Safe-Target $targetRoot $entry.FullName;if(!$entry.Name){continue};[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target));[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true)}}finally{$zip.Dispose()}
+   }
+  }
   # Microsoft's official per-user evergreen bootstrapper; validate Authenticode before execution.
   $webview=$false
   foreach($hive in @('HKCU:\Software\Microsoft\EdgeUpdate\Clients','HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients','HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients')){if(Test-Path $hive){foreach($key in Get-ChildItem $hive){$p=Get-ItemProperty $key.PSPath;if($p.name -match 'WebView2' -and $p.pv -and $p.pv -ne '0.0.0.0'){$webview=$true}}}}
@@ -124,12 +136,13 @@ $installAction={
   if(!$StageTestRoot){
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari.lnk'));$shortcut.TargetPath="$install\Dyanari.exe";$shortcut.WorkingDirectory=$install;$shortcut.Save()
+  $login=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Dyanari - Connect GitHub.lnk'));$login.TargetPath="$install\runtime\gh\bin\gh.exe";$login.Arguments='auth login --web --hostname github.com --git-protocol https';$login.WorkingDirectory=$install;$login.Save()
   $status.Text='Installed successfully. Use Dyanari in the Start menu. Setup can be rerun to add or change models. Memory and permissions are preserved.';$button.Text='Open Dyanari';$button.Enabled=$true;$models.Enabled=$false
   Copy-Item -LiteralPath "$PSScriptRoot\uninstall.ps1" -Destination "$install\uninstall.ps1" -Force
   $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dyanari'
   [void](New-Item $key -Force)
   $ps=Join-Path $PSHOME 'powershell.exe'
-  $values=@{DisplayName='Dyanari';DisplayVersion='0.3.1';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
+  $values=@{DisplayName='Dyanari';DisplayVersion='0.4.0';Publisher='Dyanari Project';InstallLocation=$install;DisplayIcon="$install\Dyanari.exe";UninstallString="`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$install\uninstall.ps1`""}
   foreach($name in $values.Keys){Set-ItemProperty $key -Name $name -Value $values[$name]}
   }
   $script:complete=$true

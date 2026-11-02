@@ -4,7 +4,7 @@ A local Windows AI companion and practical assistant, powered by Ollama. Convers
 
 ## Download
 
-[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.3.1). Select **DyanariSetup-0.3.1.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
+[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.4.0). Select **DyanariSetup-0.4.0.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
 
 Setup detects RAM and NVIDIA VRAM, recommends a Hugging Face abliterated GGUF model, and installs Dyanari, Ollama and WebView2 when needed. Model downloads are optional and checked against pinned revisions, sizes and SHA-256 hashes. Internet is required during setup; inference runs locally afterward.
 
@@ -14,6 +14,9 @@ See [installation instructions](INSTALLER.md) for sizes, shared memory paths and
 
 - Local chat, editable personality and model-independent persistent memory.
 - Scoped text/code file reading, searching, creation, editing and recovery.
+- Approved Git branches, commits, clones, fast-forward pulls and non-force pushes.
+- GitHub repositories, issues and pull requests, with exact write previews.
+- Saved Node/npm/dotnet/Python build and test recipes with real exit codes, bounded logs and process-tree cancellation.
 - Offline JavaScript, JSON and Python syntax checks.
 - Permission-controlled web fetching, reminders and limited Notepad/Calculator workflows.
 - Optional local speech, vision and ComfyUI generation with separately configured dependencies.
@@ -22,9 +25,9 @@ Internet, file changes and computer control have separate permissions. Optional 
 
 ## Development status
 
-Early preview; the full project brief is not complete. GitHub pushes, arbitrary shell commands, general browser/computer automation, structured Office editing and mobile access are not implemented. Small local models may struggle with complex coding and long tasks. Community “abliterated” descriptions do not guarantee behavior or quality.
+Early preview; the full project brief is not complete. Arbitrary shell commands, general browser/computer automation, automatic conflict repair, structured Office editing and mobile access are not implemented. Approved build/test recipes execute real code with the Windows account permissions and are not sandboxed. Small local models may struggle with complex coding and long tasks. Community “abliterated” descriptions do not guarantee behavior or quality.
 
-Passed: 43 application tests, 11 packaged installer checks, desktop extraction and an isolated application-only staging install using the verified Ollama archive. Fresh-machine model import, WebView2 installation, shortcut/uninstall registration and first launch still require acceptance testing. See [Windows tools](RELEASE-0.3.md) and [installer details](INSTALLER.md).
+Passed: 54 application tests, 10 development HTTP checks, real GitHub authentication/clone/pull and cloned-project tests, plus 11 packaged installer checks, desktop extraction and an isolated application-only staging install using the verified Ollama archive. Fresh-machine model import, WebView2 installation, shortcut/uninstall registration and first launch still require acceptance testing. See [GitHub and build/test tools](RELEASE-0.4.md), [Windows tools](RELEASE-0.3.md) and [installer details](INSTALLER.md).
 
 ## Build
 
@@ -35,7 +38,7 @@ On Windows x64, install .NET 10 SDK and place an official Node.js 24 Windows x64
 .\build-installer.ps1 -Dotnet dotnet
 ```
 
-The installer embeds the fresh desktop build and writes `DyanariSetup-0.3.1.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
+The installer embeds the fresh desktop build and writes `DyanariSetup-0.4.0.exe` into the parent directory. Ollama and model files download during setup. Close running copies before replacing outputs.
 
 For source development, `npm start` starts the loopback backend; configure local Ollama separately. `npm test` runs core tests. `npm run test:services` needs optional local services. Read integration-script prerequisites before running them; they perform real operations in isolated test workspaces.
 
