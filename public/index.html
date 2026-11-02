@@ -17,6 +17,7 @@
         ><button data-tab="tools">Tools & permissions</button
         ><button data-tab="actions">Computer & checks</button
         ><button data-tab="development">Development</button
+        ><button data-tab="linked-projects">Linked projects</button
         ><button data-tab="models">Models</button
         ><button data-tab="personality">Personality</button
         ><button data-tab="activity">Activity & recovery</button
@@ -458,6 +459,32 @@
         </div>
         <div class="card"><h3>Pending execution approvals</h3><div id="developmentApprovals"></div></div>
         <div class="card"><h3>Recent runs</h3><button id="refreshDevelopment">Refresh progress</button><div id="developmentRuns"></div></div>
+      </section>
+      <section id="linked-projects" class="page hidden">
+        <h2>Linked projects · local MCP tools</h2>
+        <label><input id="linkedProjectsEnabled" type="checkbox" /> Enable linked projects</label>
+        <p>Requires Tools & File Access, Read Files and Run Tools. Choose an approved writable workspace below. External servers run with your Windows account permissions; workspace roots are guidance, not a sandbox. The Internet switch does not isolate external-process networking. Each install, start and tool call gets an exact approval preview.</p>
+        <div class="card"><h3>Connect REA or another local project</h3>
+          <label>Working folder / analysis workspace<input id="linkedProjectPath" placeholder="C:\Projects\Analysis" /></label>
+          <button id="addReaProject">Add REA (morluto/rea)</button>
+          <p>REA 6.8.0 installs privately from the pinned rea-agents npm package, with lifecycle scripts disabled. Dyanari does not run REA setup or change other agents' configuration. Static analysis needs no decompiler; deeper native analysis needs separately installed providers.</p>
+          <label>Local MCP project name<input id="linkedProjectName" placeholder="My local tool server" /></label>
+          <label>Runtime<select id="linkedProjectTool"><option>node</option><option>python</option></select></label>
+          <label>Arguments as JSON (first item: absolute entry script)<input id="linkedProjectArgs" placeholder='["C:\\Projects\\Tools\\server.mjs"]' /></label>
+          <button id="addLocalLinkedProject">Link local MCP project</button>
+          <p>Ordinary CLI/build/test projects use saved recipes on the Development page. This connector supports local stdio MCP servers; HTTP servers and automatic skill/config imports are not supported.</p>
+        </div>
+        <div id="linkedProjectList"></div>
+        <div class="card"><h3>Discover and call tools</h3>
+          <label>Linked project<select id="linkedProjectSelect"></select></label>
+          <label>Search tool names/descriptions<input id="linkedToolQuery" placeholder="javascript" /></label><button id="discoverLinkedTools">Discover tools</button>
+          <pre id="linkedToolCatalog"></pre>
+          <label>Exact tool name<input id="linkedToolName" /></label>
+          <label>Tool arguments as JSON<textarea id="linkedToolArguments">{}</textarea></label><button id="previewLinkedTool">Preview tool call</button>
+          <pre id="linkedToolResult"></pre>
+        </div>
+        <div class="card"><h3>Pending execution approvals</h3><div id="linkedProjectApprovals"></div></div>
+        <div class="card"><h3>Recent results</h3><button id="refreshLinkedProjects">Refresh progress</button><div id="linkedProjectRuns"></div></div>
       </section>
       <div id="notice" role="status"></div>
     </main>

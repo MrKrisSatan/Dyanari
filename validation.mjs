@@ -12,7 +12,7 @@ export class ValidationTracker {
   }
   observe(name, result) {
     if (!result || result.error) return;
-    if (result.pending && /^(git_|github_|run_project_recipe)/.test(name)) this.pendingDevelopment = true;
+    if (result.pending && /^(git_|github_|run_project_recipe|install_linked_project|start_linked_project|call_linked_project_tool)/.test(name)) this.pendingDevelopment = true;
     if (name === "check_project_file" && typeof result.passed === "boolean")
       this.checks.set(result.path, result.passed);
     if (
@@ -43,6 +43,6 @@ export class ValidationTracker {
       ? "\n\nVerification: syntax validation has not passed for " +
           files.join(", ") +
           "."
-      : "") + (this.pendingDevelopment ? '\n\nDevelopment: waiting for your approval in the Development page. Requested operations have not executed.' : '');
+      : "") + (this.pendingDevelopment ? '\n\nExecution: waiting for your approval in Development or Linked projects. Requested operations have not executed.' : '');
   }
 }

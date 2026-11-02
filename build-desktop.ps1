@@ -8,7 +8,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $payload) { Remove-Item -LiteralPath $payload }
 $zip = [System.IO.Compression.ZipFile]::Open($payload, 'Create')
 try {
-  foreach ($file in @('server.mjs','core.mjs','memory.mjs','voice.mjs','files.mjs','scheduler.mjs','creative.mjs','vision.mjs','resources.mjs','actions.mjs','development.mjs','validation.mjs')) {
+  foreach ($file in @('server.mjs','core.mjs','memory.mjs','voice.mjs','files.mjs','scheduler.mjs','creative.mjs','vision.mjs','resources.mjs','actions.mjs','development.mjs','linked-projects.mjs','validation.mjs')) {
     if (Test-Path -LiteralPath $file) { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $PSScriptRoot $file), $file, 'Optimal') | Out-Null }
   }
   [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $PSScriptRoot 'runtime\node.exe'), 'node.exe', 'Optimal') | Out-Null

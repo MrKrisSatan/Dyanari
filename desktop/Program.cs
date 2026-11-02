@@ -20,7 +20,7 @@ internal static class Program
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "Dyanari", MessageBoxButtons.OK, MessageBoxIcon.Error);
         if (args.Contains("--self-test"))
         {
-            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")), payload = location, version = "0.4.0" })); }
+            try { var location = Payload.Extract(); File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = File.Exists(Path.Combine(location, "node.exe")) && File.Exists(Path.Combine(location, "server.mjs")) && File.Exists(Path.Combine(location,"Dyanari.Actions.exe")) && File.Exists(Path.Combine(location,"development.mjs")) && File.Exists(Path.Combine(location,"linked-projects.mjs")), payload = location, version = "0.5.0" })); }
             catch (Exception e) { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "desktop-self-test.json"), JsonSerializer.Serialize(new { passed = false, error = e.Message })); Environment.ExitCode = 1; }
             return;
         }

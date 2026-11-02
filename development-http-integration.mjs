@@ -24,5 +24,14 @@ try{
  const result=await api('development/confirm',{id:preview.id,approved:true});assert.equal(result.passed,true);assert.match(result.stdout,/API execution verified/);
  assert.match((await api('development/confirm',{id:preview.id,approved:true})).error,/missing/);
  const p=await api('tool',{name:'run_project_recipe',arguments:{id:'test'}});await api('stop',{});assert.equal((await api('state')).development.pending.length,0);assert.match((await api('development/confirm',{id:p.id,approved:true})).error,/missing/);
- console.log(JSON.stringify({passed:true,checks:10,authenticatedApi:true,realCommandExecution:true,singleUseApproval:true,stopCancelsPending:true}));
+ assert.equal((await api('state')).settings.linkedProjectsEnabled,false);
+ const entry=path.join(project,'mcp-server.mjs');fs.copyFileSync(path.join(import.meta.dirname,'fixtures/mcp-server.mjs'),entry);
+ assert.ok(!(await api('settings',{linkedProjectsEnabled:true,linkedProjects:[{id:'fixture',name:'HTTP owned MCP fixture',kind:'local',path:project,tool:'node',args:[entry],approvedTools:['echo'],timeoutSeconds:5}]})).error);
+ const linked=await api('tool',{name:'start_linked_project',arguments:{id:'fixture'}});assert.equal(linked.pending,true);
+ assert.match((await api('linked-projects/confirm',{id:linked.id})).error,/Explicit/);
+ assert.equal((await api('linked-projects/confirm',{id:linked.id,approved:true})).toolCount,5);
+ const call=await api('tool',{name:'call_linked_project_tool',arguments:{id:'fixture',tool:'echo',arguments_json:'{"text":"HTTP MCP verified"}'}});assert.equal(call.pending,true);
+ const linkedResult=await api('linked-projects/confirm',{id:call.id,approved:true});assert.equal(linkedResult.passed,true);assert.match(linkedResult.result.content[0].text,/HTTP MCP verified/);
+ await api('stop',{});assert.equal((await api('state')).linkedProjects.projects[0].connected,false);
+ console.log(JSON.stringify({passed:true,checks:19,authenticatedApi:true,realCommandExecution:true,singleUseApproval:true,stopCancelsPending:true,realStdioMcp:true,approvedToolCall:true,stopClosesServer:true}));
 }finally{server.kill();await once(server,'exit')}
