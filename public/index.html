@@ -120,8 +120,21 @@
         ><input
           id="memoryProject"
           placeholder="Project / lore namespace"
-        /><button id="addMemory">Remember</button>
+        />
+        <div><label>Memory category<select id="memoryCategory"></select></label><button id="addMemory">Remember</button></div>
+        <label>Filter category<select id="memoryCategoryFilter"><option value="">All categories</option></select></label>
+        <button id="exportMemories">Export memories JSON (unencrypted)</button>
         <div id="memories"></div>
+        <div class="card"><h3>Memory suggestions</h3>
+          <label><input type="checkbox" id="memorySuggestionsEnabled" /> Suggest stable facts from non-private chat</label>
+          <p>Off by default. Simple local rules propose preferences and project facts from your messages. Suggestions are not recalled as saved memories until you approve them. Private messages are excluded. Workflow preferences never grant tool permissions.</p>
+          <button id="suggestRecentMemories">Review recent project chat</button><div id="memorySuggestions"></div>
+        </div>
+        <div class="card"><h3>Review related memories</h3>
+          <p>Similar wording can describe different or conflicting facts. Review the originals and choose the corrected text before consolidating. Projects cannot be merged together.</p>
+          <button id="findMemoryDuplicates">Find related wording</button><div id="memoryDuplicates"></div>
+          <h3>Consolidation recovery</h3><div id="memoryMergeHistory"></div><button id="clearMemoryMergeHistory">Clear consolidation recovery history</button>
+        </div>
         <h3>Encrypted backup</h3>
         <input
           type="password"

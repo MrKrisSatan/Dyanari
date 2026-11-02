@@ -1,6 +1,7 @@
 const $ = (id) => document.getElementById(id),
   token = document.querySelector("meta[name=token]").content;
 let state,
+  memoryMatches = null,
   privateHistory = [],
   lastPrivate = false;
 function notice(t) {
@@ -89,6 +90,7 @@ async function refresh(history = false) {
   renderComputerState(s, state.actions);
   renderDevelopment(s,state.development);
   renderLinkedProjects(s,state.linkedProjects);
+  renderMemoryReview(s,state.memoryReview);
   $("quietStart").value = s.quietStart;
   $("quietEnd").value = s.quietEnd;
   $("modelSelect").replaceChildren();
@@ -138,6 +140,7 @@ async function refresh(history = false) {
       ],
     ),
   );
+  if($('memorySearch').value||$('memoryCategoryFilter').value)memoryMatches=await api('memory/search?query='+encodeURIComponent($('memorySearch').value)+'&category='+encodeURIComponent($('memoryCategoryFilter').value));else memoryMatches=null;
   renderMemories();
   $("logs").replaceChildren();
   state.activity.forEach((a) =>
@@ -232,20 +235,22 @@ async function refresh(history = false) {
 }
 function renderMemories() {
   $("memories").replaceChildren();
-  for (const m of state.memories.filter((m) =>
-    m.content.toLowerCase().includes($("memorySearch").value.toLowerCase()),
-  ))
-    card($("memories"), (m.project ? "[" + m.project + "] " : "") + m.content, [
+  for (const m of (memoryMatches||state.memories))
+    card($("memories"), (m.project ? "[" + m.project + "] " : "") + m.content+'\nCategory: '+m.category+' · Source: '+m.source+' · #'+m.id, [
       [
         "Edit",
         async () => {
           const content = prompt("Correct memory", m.content);
           if (content) {
+            const category=prompt('Category: '+state.memoryReview.categories.join(', '),m.category);if(!category)return;
+            const project=prompt('Project namespace (blank means global)',m.project);if(project===null)return;
             await api("memory", {
               action: "edit",
               id: m.id,
               content,
-              project: m.project,
+              project,
+              category,
+              expected:m.snapshot,
             });
             await refresh();
           }
@@ -254,7 +259,8 @@ function renderMemories() {
       [
         "Delete",
         async () => {
-          await api("memory", { action: "delete", id: m.id });
+          if(!confirm('Permanently forget this memory and matching consolidation recovery snapshots?\n\n'+m.content))return;
+          await api("memory", { action: "delete", id: m.id,expected:m.snapshot });
           await refresh();
         },
       ],
@@ -404,12 +410,15 @@ $("clearHistory").onclick = () =>
       await refresh(true);
     }
   });
-$("memorySearch").oninput = renderMemories;
+async function searchMemories(){memoryMatches=await api('memory/search?query='+encodeURIComponent($('memorySearch').value)+'&category='+encodeURIComponent($('memoryCategoryFilter').value));renderMemories()}
+$("memorySearch").oninput = ()=>safe(searchMemories);
+$('memoryCategoryFilter').onchange=()=>safe(searchMemories);
 $("addMemory").onclick = () =>
   safe(async () => {
     await api("memory", {
       content: $("memoryContent").value,
       project: $("memoryProject").value,
+      category:$('memoryCategory').value,
     });
     $("memoryContent").value = "";
     await refresh();
@@ -961,3 +970,20 @@ $('addLocalLinkedProject').onclick=()=>safe(()=>updateSettings({linkedProjects:[
 $('discoverLinkedTools').onclick=()=>safe(async()=>{$('linkedToolCatalog').textContent=JSON.stringify(await api('tool',{name:'list_linked_project_tools',arguments:{id:$('linkedProjectSelect').value,query:$('linkedToolQuery').value}}),null,2)});
 $('previewLinkedTool').onclick=()=>safe(async()=>{JSON.parse($('linkedToolArguments').value);const r=await api('tool',{name:'call_linked_project_tool',arguments:{id:$('linkedProjectSelect').value,tool:$('linkedToolName').value,arguments_json:$('linkedToolArguments').value}});notice(r.message);await refresh()});
 $('refreshLinkedProjects').onclick=()=>safe(()=>refresh());
+
+function renderMemoryReview(s, review) {
+ $('memorySuggestionsEnabled').checked=!!s.memorySuggestionsEnabled;
+ if(!$('memoryCategory').options.length)for(const category of review?.categories||[]){const a=document.createElement('option');a.value=a.textContent=category;$('memoryCategory').append(a);const b=a.cloneNode(true);$('memoryCategoryFilter').append(b)}
+ $('memorySuggestions').replaceChildren();
+ for(const p of review?.suggestions||[])card($('memorySuggestions'),'Suggested, not saved · '+p.category+' · '+(p.project||'global')+'\n'+p.content+'\nSource: your non-private message\n'+p.evidence,[
+  ['Approve memory',async()=>{await api('memory/review',{action:'approve',id:p.id,approved:true});await refresh()}],
+  ['Correct then approve',async()=>{const content=prompt('Correct the suggested memory',p.content);if(!content)return;const category=prompt('Category: '+(review.categories||[]).join(', '),p.category);if(!category)return;await api('memory/review',{action:'approve',id:p.id,content,category,project:p.project,approved:true});await refresh()}],
+  ['Dismiss',async()=>{await api('memory/review',{action:'dismiss',id:p.id});await refresh()}]
+ ]);
+ $('memoryMergeHistory').replaceChildren();for(const merge of review?.merges||[])card($('memoryMergeHistory'),'Consolidation #'+merge.id+' · '+merge.stamp+(merge.undone?' · undone':''),merge.undone?[]:[['Undo consolidation',async()=>{if(!confirm('Restore the original memories? Undo refuses if the consolidated memory was changed.'))return;await api('memory/review',{action:'undo-merge',id:merge.id,approved:true});await refresh()}]]);
+}
+$('memorySuggestionsEnabled').onchange=()=>safe(()=>updateSettings({memorySuggestionsEnabled:$('memorySuggestionsEnabled').checked}));
+$('suggestRecentMemories').onclick=()=>safe(async()=>{const result=await api('memory/review',{action:'recent'});notice(result.created+' suggestions queued for review.');await refresh()});
+$('findMemoryDuplicates').onclick=()=>safe(async()=>{const pairs=await api('memory/review',{action:'duplicates'});$('memoryDuplicates').replaceChildren();if(!pairs.length)card($('memoryDuplicates'),'No related wording found in the bounded scan.');for(const pair of pairs)card($('memoryDuplicates'),(pair.project||'Global')+' · Similar wording, not necessarily the same fact\n'+pair.contents.join('\n---\n'),[['Preview consolidation',async()=>{const content=prompt('Enter the corrected consolidated fact. Check for contradictions first.',pair.contents[0]);if(!content)return;const category=prompt('Memory category', 'general');if(!category)return;const preview=await api('memory/review',{action:'preview-merge',ids:pair.ids,content,category});if(!confirm('Replace these memories?\n\n'+preview.before.map(m=>m.content).join('\n')+'\n\nWith:\n'+preview.after.content+'\nProject: '+(preview.after.project||'global')))return;await api('memory/review',{action:'confirm-merge',id:preview.id,approved:true});$('memoryDuplicates').replaceChildren();await refresh()}]])});
+$('clearMemoryMergeHistory').onclick=()=>safe(async()=>{if(!confirm('Permanently remove consolidation recovery copies? Saved memories remain, but these merges cannot be undone.'))return;await api('memory/review',{action:'clear-merge-history',approved:true});await refresh()});
+$('exportMemories').onclick=()=>safe(async()=>{const data=await api('memory/export');const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='dyanari-memories.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});

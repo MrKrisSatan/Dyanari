@@ -62,9 +62,9 @@ export class MemoryEngine {
           m.vector = vs[i];
           this.core.db
             .prepare(
-              "INSERT OR REPLACE INTO memory_vectors(id,digest,vector,embedding_model) VALUES(?,?,?,?)",
+              "INSERT OR REPLACE INTO memory_vectors(id,digest,vector,embedding_model) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM memories WHERE id=? AND content=? AND project=?)",
             )
-            .run(m.id, m.digest, JSON.stringify(m.vector), EMBEDDING_MODEL);
+            .run(m.id, m.digest, JSON.stringify(m.vector), EMBEDDING_MODEL,m.id,m.content,m.project);
         });
       }
       const [q] = await this.embed([query], signal);
@@ -132,13 +132,14 @@ export class MemoryEngine {
           .all(project);
     return {
       history: messages,
-      memories: await this.retrieve(query, project, signal),
+      memories: (await this.retrieve(query, project, signal)).flatMap(m=>{let detail;try{detail=this.core.memoryLedger.get(m.id)}catch{return []}if(detail.content!==m.content||detail.project!==m.project)return [];return [{...m,category:detail.category,source:detail.source}]}),
     };
   }
   status() {
     return {
       sharedAcrossModels: true,
       embeddingModel: EMBEDDING_MODEL,
+      pendingSuggestions:this.core.db.prepare('SELECT count(*) n FROM memory_suggestions').get().n,
       savedMemories: this.core.db
         .prepare("SELECT count(*) n FROM memories")
         .get().n,
