@@ -4,7 +4,7 @@ A local Windows AI companion and practical assistant, powered by Ollama. Convers
 
 ## Download
 
-[Download the latest Windows installer](https://github.com/MrKrisSatan/Dyanari/releases/latest). Select **DyanariSetup-0.3.1.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
+[Download the Windows installer preview](https://github.com/MrKrisSatan/Dyanari/releases/tag/v0.3.1). Select **DyanariSetup-0.3.1.exe** under Assets. Requires Windows x64, Windows 10 build 19041 or newer. This build is unsigned.
 
 Setup detects RAM and NVIDIA VRAM, recommends a Hugging Face abliterated GGUF model, and installs Dyanari, Ollama and WebView2 when needed. Model downloads are optional and checked against pinned revisions, sizes and SHA-256 hashes. Internet is required during setup; inference runs locally afterward.
 
